@@ -1,0 +1,464 @@
+version: "2"
+type: backend
+tech_stack:
+  - language: TypeScript
+  - framework: Next.js 14
+  - database: SQLite via Prisma ORM
+  - other: Google Generative AI, Kimi (Moonshot), Anthropic Claude API, Chart.js, PapaParse, TailwindCSS
+features:
+  - name: Google Sheet Proxy
+    description: Fetches CSV data from a public Google Sheets URL and returns it as CSV
+    files:
+      - app/api/sheet/route.ts
+    endpoints:
+      - method: GET
+        path: /api/sheet
+        description: Proxy request to fetch Google Sheets CSV data
+        auth_required: false
+        request_schema:
+          query:
+            url: string
+        response_schema:
+          "200": text/csv
+          "400": Error message if URL missing or sheet returns error
+          "500": Error message on fetch failure
+
+  - name: AI Business Analysis
+    description: Analyzes business dashboard data (ads, CS, ADV, KPI, growth) using AI with fallback providers
+    files:
+      - app/api/analyze/route.ts
+      - lib/gemini-prompt.ts
+      - lib/ai-providers.ts
+    endpoints:
+      - method: POST
+        path: /api/analyze
+        description: Submit dashboard data for AI-powered analysis
+        auth_required: false
+        request_schema:
+          body:
+            summary: object
+            rawData: object
+            bulan: string
+            csData: array
+            advData: array
+            advSpend: array
+            kpiBenchmarks: array
+            csDaily: array
+            dashboardCS: array
+            growth: array
+            errorReport: string
+        response_schema:
+          "200": "{ quick: object | null, analysis: string | null, provider: string }"
+          "500": Error message
+
+  - name: AI Smart Router
+    description: Routes AI tasks to the best available provider (Gemini, Claude, Kimi) with health monitoring
+    files:
+      - app/api/router/route.ts
+      - lib/ai-router.ts
+    endpoints:
+      - method: POST
+        path: /api/router
+        description: Route a task to best available AI provider
+        auth_required: false
+        request_schema:
+          body:
+            task: string
+            payload: object
+            preferredProvider: "gemini | claude | kimi (optional)"
+        response_schema:
+          "200": AI provider result
+          "400": "{ error: 'task and payload are required' }"
+          "500": Error message
+      - method: GET
+        path: /api/router
+        description: Get health status of all AI providers
+        auth_required: false
+        response_schema:
+          "200": "{ health: object }"
+
+  - name: Semantic Sheet Mapper
+    description: Maps sheet headers and sample rows to semantic schema using AI
+    files:
+      - app/api/semantic-map/route.ts
+      - lib/semantic-mapper.ts
+    endpoints:
+      - method: POST
+        path: /api/semantic-map
+        description: Map sheet structure to semantic schema
+        auth_required: false
+        request_schema:
+          body:
+            sheetName: string
+            headers: array
+            sampleRows: array
+        response_schema:
+          "200": Semantic schema object
+          "400": "{ error: 'sheetName and headers required' }"
+          "500": Error message
+
+  - name: Entity Drill-Down Analysis
+    description: Performs deep analysis on a specific entity (CS/ADV) across available sheets
+    files:
+      - app/api/drill-down/route.ts
+      - lib/drill-down.ts
+    endpoints:
+      - method: POST
+        path: /api/drill-down
+        description: Drill down into entity performance data
+        auth_required: false
+        request_schema:
+          body:
+            entityType: string
+            entityName: string
+            availableSheets: array
+        response_schema:
+          "200": Drill-down result object
+          "400": "{ error: 'entityType, entityName, and availableSheets required' }"
+          "500": Error message
+
+  - name: Bookmarks Management
+    description: CRUD operations for bookmarked Google Sheets
+    files:
+      - app/api/db/bookmarks/route.ts
+      - lib/prisma.ts
+    endpoints:
+      - method: GET
+        path: /api/db/bookmarks
+        description: List all bookmarked sheets with cached data
+        auth_required: false
+        response_schema:
+          "200": BookmarkedSheet[]
+      - method: POST
+        path: /api/db/bookmarks
+        description: Create or update a bookmarked sheet
+        auth_required: false
+        request_schema:
+          body:
+            label: string
+            spreadsheetId: string
+            sheetMap: object
+        response_schema:
+          "200": BookmarkedSheet
+      - method: DELETE
+        path: /api/db/bookmarks
+        description: Delete a bookmarked sheet by ID
+        auth_required: false
+        request_schema:
+          query:
+            id: string
+        response_schema:
+          "200": "{ success: true }"
+          "400": "{ error: 'ID required' }"
+
+  - name: Sheet Cache Management
+    description: Manages cached sheet data per bookmark and sheet type
+    files:
+      - app/api/db/cache/route.ts
+    endpoints:
+      - method: GET
+        path: /api/db/cache
+        description: Get cached sheet data filtered by bookmarkId and optional sheetType
+        auth_required: false
+        request_schema:
+          query:
+            bookmarkId: string
+            sheetType: string (optional)
+        response_schema:
+          "200": CachedSheetData[]
+      - method: POST
+        path: /api/db/cache
+        description: Create or replace cache for a bookmark/sheetType combination
+        auth_required: false
+        request_schema:
+          body:
+            bookmarkId: string
+            sheetName: string
+            sheetType: string
+            data: object
+        response_schema:
+          "200": CachedSheetData
+
+  - name: Monthly Sales Records
+    description: CRUD operations for monthly sales summary data
+    files:
+      - app/api/db/monthly-sales/route.ts
+    endpoints:
+      - method: GET
+        path: /api/db/monthly-sales
+        description: Get monthly sales records, optionally filtered by monthYear
+        auth_required: false
+        request_schema:
+          query:
+            monthYear: string (optional)
+        response_schema:
+          "200": MonthlySales | MonthlySales[]
+      - method: POST
+        path: /api/db/monthly-sales
+        description: Create or update a monthly sales record
+        auth_required: false
+        request_schema:
+          body:
+            monthYear: string
+            totalRevenue: number
+            totalOrders: number
+            totalAdSpend: number
+            roas: number
+            notes: string
+        response_schema:
+          "200": MonthlySales
+      - method: DELETE
+        path: /api/db/monthly-sales
+        description: Delete a monthly sales record by ID
+        auth_required: false
+        request_schema:
+          query:
+            id: string
+        response_schema:
+          "200": "{ success: true }"
+          "400": "{ error: 'ID required' }"
+
+  - name: Meeting Notes
+    description: CRUD operations for meeting notes with filtering by type and month
+    files:
+      - app/api/db/meetings/route.ts
+    endpoints:
+      - method: GET
+        path: /api/db/meetings
+        description: List meeting notes filtered by type and/or month
+        auth_required: false
+        request_schema:
+          query:
+            type: string (optional)
+            month: "string YYYY-MM (optional)"
+        response_schema:
+          "200": MeetingNote[]
+      - method: POST
+        path: /api/db/meetings
+        description: Create a new meeting note or update existing one if id provided
+        auth_required: false
+        request_schema:
+          body:
+            id: string (optional for update)
+            date: string
+            type: string
+            title: string
+            attendees: string
+            agenda: string
+            decisions: string
+            actionItems: string
+            notes: string
+        response_schema:
+          "200": MeetingNote
+      - method: DELETE
+        path: /api/db/meetings
+        description: Delete a meeting note by ID
+        auth_required: false
+        request_schema:
+          query:
+            id: string
+        response_schema:
+          "200": "{ success: true }"
+          "400": "{ error: 'ID required' }"
+
+  - name: Alerts Management
+    description: Business alerts system for KPI threshold violations (ROAS, CAQ, CR, retur rate)
+    files:
+      - app/api/alerts/route.ts
+    endpoints:
+      - method: GET
+        path: /api/alerts
+        description: List alerts with optional filters for acknowledged status, type, and limit
+        auth_required: false
+        request_schema:
+          query:
+            acknowledged: "boolean string (optional)"
+            limit: "number string (optional)"
+            type: string (optional)
+        response_schema:
+          "200": Alert[]
+      - method: POST
+        path: /api/alerts
+        description: Create single or bulk alerts, or acknowledge an alert
+        auth_required: false
+        request_schema:
+          body:
+            type: string
+            severity: string
+            title: string
+            message: string
+            metric: string (optional)
+            threshold: string (optional)
+            id: string (optional, for acknowledge)
+            acknowledged: boolean (optional, for acknowledge)
+        response_schema:
+          "200": Alert or array of Alert
+      - method: DELETE
+        path: /api/alerts
+        description: Delete alert by ID or delete alerts older than given hours
+        auth_required: false
+        request_schema:
+          query:
+            id: string (optional)
+            olderThanHours: string (optional)
+        response_schema:
+          "200": "{ success: true } or { success: true, deleted: number }"
+          "400": "{ error: 'Need id or olderThanHours' }"
+
+  - name: App Settings
+    description: Singleton application settings for AI priority, alert thresholds, and sync config
+    files:
+      - app/api/db/settings/route.ts
+    endpoints:
+      - method: GET
+        path: /api/db/settings
+        description: Get current app settings (auto-creates singleton if missing)
+        auth_required: false
+        response_schema:
+          "200": AppSettings
+      - method: POST
+        path: /api/db/settings
+        description: Update application settings
+        auth_required: false
+        request_schema:
+          body:
+            defaultSheetId: string
+            aiPriority: string
+            autoSyncEnabled: boolean
+            autoSyncInterval: number
+            alertRoasLow: number
+            alertRoasHigh: number
+            alertCaqHigh: number
+            alertCrLow: number
+            alertReturRateHigh: number
+        response_schema:
+          "200": AppSettings
+
+  - name: AI Chat Assistant
+    description: Multi-provider AI chat for business Q&A and morning briefings with context injection
+    files:
+      - app/api/chat/route.ts
+    endpoints:
+      - method: POST
+        path: /api/chat
+        description: Chat with AI assistant using fallback providers (Kimi, Claude, Gemini)
+        auth_required: false
+        request_schema:
+          body:
+            messages: "array of { role: 'user'|'assistant', content: string }"
+            task: "chat | briefing"
+            context:
+              bulan: string (optional)
+              kpi: object (optional)
+              topAlerts: string[] (optional)
+        response_schema:
+          "200": "{ message: string, provider: string, task: string }"
+          "400": "{ error: 'messages array is required' }"
+          "503": All providers failed
+
+  - name: Retur (Return) Data Management
+    description: CRUD operations for product return records with filtering by status, product, and month
+    files:
+      - app/api/db/retur/route.ts
+    endpoints:
+      - method: GET
+        path: /api/db/retur
+        description: List retur records with optional filters
+        auth_required: false
+        request_schema:
+          query:
+            status: string (optional)
+            produk: string (optional)
+            month: "string YYYY-MM (optional)"
+        response_schema:
+          "200": ReturData[]
+      - method: POST
+        path: /api/db/retur
+        description: Create a new retur record or update existing one if id provided
+        auth_required: false
+        request_schema:
+          body:
+            id: string (optional for update)
+            date: string
+            produk: string
+            cs: string
+            adv: string
+            jumlah: number
+            nilai: number
+            alasan: string
+            status: string
+        response_schema:
+          "200": ReturData
+      - method: DELETE
+        path: /api/db/retur
+        description: Delete a retur record by ID
+        auth_required: false
+        request_schema:
+          query:
+            id: string
+        response_schema:
+          "200": "{ success: true }"
+          "400": "{ error: 'ID required' }"
+
+  - name: Retur CSV Upload
+    description: Batch import retur data from a CSV file
+    files:
+      - app/api/db/retur/upload/route.ts
+      - lib/parseRetur.ts
+    endpoints:
+      - method: POST
+        path: /api/db/retur/upload
+        description: Upload a CSV file to bulk import retur records
+        auth_required: false
+        request_schema:
+          body: multipart/form-data with file field (.csv)
+        response_schema:
+          "200": "{ success: true, imported: number, sample: ReturData[] }"
+          "400": Invalid file or empty CSV
+          "500": Parse or insert error
+
+  - name: Database Export
+    description: Download the SQLite database file as a binary backup
+    files:
+      - app/api/db/export/route.ts
+    endpoints:
+      - method: GET
+        path: /api/db/export
+        description: Download the current SQLite database as a .db file
+        auth_required: false
+        response_schema:
+          "200": Binary .db file attachment
+          "500": "{ error: 'Database file not found' }"
+
+  - name: Database Import/Restore
+    description: Restore the SQLite database from an uploaded .db file with automatic backup
+    files:
+      - app/api/db/import/route.ts
+    endpoints:
+      - method: POST
+        path: /api/db/import
+        description: Upload a .db file to restore/replace the current database
+        auth_required: false
+        request_schema:
+          body: multipart/form-data with file field (.db)
+        response_schema:
+          "200": "{ success: true, message: string, backup: string }"
+          "400": "{ error: 'Invalid file. Please upload a .db file.' }"
+          "500": Restore failure message
+
+known_limitations:
+  - issue: No authentication or authorization on any API endpoint
+    location: app/api/**
+    impact: All endpoints are publicly accessible without any auth check
+  - issue: Database import replaces entire database without schema validation
+    location: app/api/db/import/route.ts
+    impact: Uploading an incompatible .db file could corrupt the application state
+  - issue: No input validation on most POST endpoints (e.g., bookmarks, meetings, retur)
+    location: "app/api/db/bookmarks/route.ts, app/api/db/meetings/route.ts, app/api/db/retur/route.ts"
+    impact: Missing or malformed fields may cause Prisma errors instead of clean 400 responses
+  - issue: Sheet proxy forwards arbitrary URLs without whitelist validation
+    location: app/api/sheet/route.ts
+    impact: Potential SSRF — any internal or external URL can be fetched
+  - issue: Alert limit query param parsed with parseInt without validation
+    location: app/api/alerts/route.ts
+    impact: Non-numeric limit values result in NaN being passed to Prisma take parameter

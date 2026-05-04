@@ -1,0 +1,144 @@
+// Prisma schema for OmniSales Dashboard (SQLite)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ── Bookmarked Spreadsheets ─────────────────────────────────────────────────
+// Stores spreadsheet configurations (replaces localStorage bookmarks)
+model BookmarkedSheet {
+  id            String   @id @default(uuid())
+  label         String   // e.g. "April 2026"
+  spreadsheetId String   @unique
+  sheetMap      String   // JSON: { ads: "Laporan Harian", totalBiayaIklan: "Total Biaya iklan", ... }
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  // Relations
+  cachedData    CachedSheetData[]
+  monthlySales  MonthlySales[]
+}
+
+// ── Cached Sheet Data ───────────────────────────────────────────────────────
+// Stores fetched CSV data so user doesn't need to refetch every time
+model CachedSheetData {
+  id              String   @id @default(uuid())
+  bookmarkId      String
+  sheetName       String   // e.g. "Laporan Harian"
+  sheetType       String   // e.g. "ads", "cs", "adv"
+  data            String   // JSON string of parsed rows
+  fetchedAt       DateTime @default(now())
+
+  bookmark        BookmarkedSheet @relation(fields: [bookmarkId], references: [id], onDelete: Cascade)
+
+  @@index([bookmarkId, sheetType])
+}
+
+// ── Monthly Sales Summary ───────────────────────────────────────────────────
+// Aggregated sales data per month (from spreadsheet or manual input)
+model MonthlySales {
+  id            String   @id @default(uuid())
+  monthYear     String   // Format: "2026-04"
+  totalRevenue  Float    // Total omset
+  totalOrders   Int      // Total closing
+  totalAdSpend  Float    // Total biaya iklan
+  totalLeads    Int      // Total lead
+  roas          Float    // Revenue / AdSpend
+  sourceUrl     String?  // Google Sheets URL
+  notes         String?  // Manual notes
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  bookmarkId    String?
+  bookmark      BookmarkedSheet? @relation(fields: [bookmarkId], references: [id], onDelete: SetNull)
+
+  @@unique([monthYear])
+}
+
+// ── App Settings ────────────────────────────────────────────────────────────
+// Global configuration (singleton)
+model AppSettings {
+  id                String   @id @default("singleton")
+  defaultSheetId    String?  // Default spreadsheet ID
+  aiPriority        String   @default("gemini,claude,kimi")
+  autoSyncEnabled   Boolean  @default(false)
+  autoSyncInterval  Int      @default(30) // minutes
+  lastSyncAt        DateTime @default(now())
+  // Alert thresholds
+  alertRoasLow      Float    @default(2.0)
+  alertRoasHigh     Float    @default(4.0)
+  alertCaqHigh      Float    @default(200000)
+  alertCrLow        Float    @default(10.0)
+  alertReturRateHigh Float   @default(5.0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// ── Alerts ──────────────────────────────────────────────────────────────────
+// Threshold-based alert notifications
+model Alert {
+  id            String   @id @default(uuid())
+  type          String   // "roas_low" | "roas_high" | "caq_high" | "cr_low" | "retur_high" | "budget_over" | "cs_cr_low" | "adv_caq_high"
+  severity      String   // "critical" | "warning" | "success" | "info"
+  title         String
+  message       String
+  metric        String?  // raw value
+  threshold     String?  // threshold value
+  acknowledged  Boolean  @default(false)
+  createdAt     DateTime @default(now())
+}
+
+// ── Meeting Notes ───────────────────────────────────────────────────────────
+// Weekly / Monthly meeting records
+model MeetingNote {
+  id          String   @id @default(uuid())
+  date        String   // ISO date: "2026-05-03"
+  type        String   // "weekly" | "monthly"
+  title       String
+  attendees   String?  // comma-separated
+  agenda      String?
+  decisions   String?
+  actionItems String?  // JSON: [{ task, assignee, deadline, status }]
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ── Retur Data ──────────────────────────────────────────────────────────────
+// Product return / refund records
+model ReturData {
+  id        String   @id @default(uuid())
+  date      String   // ISO date
+  produk    String
+  cs        String?
+  adv       String?
+  jumlah    Int
+  nilai     Float
+  alasan    String?
+  status    String   @default("open") // open | resolved | pending
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ── Daily Metrics (for time-series) ─────────────────────────────────────────
+// Stores daily aggregated KPI for fast chart rendering
+model DailyMetric {
+  id            String   @id @default(uuid())
+  date          String   // ISO date: "2026-04-01"
+  monthYear     String   // "2026-04"
+  revenue       Float    // Omset harian
+  adSpend       Float    // Biaya iklan harian
+  leads         Int
+  closings      Int
+  botols        Int
+  cr            Float    // Closing Rate %
+  createdAt     DateTime @default(now())
+
+  @@unique([date])
+  @@index([monthYear])
+}

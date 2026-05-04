@@ -1,0 +1,52 @@
+[
+  {
+    "id": "TC001",
+    "title": "get_google_sheet_proxy_without_url",
+    "description": "Test GET /api/sheet without url query parameter to verify it returns 400 with error message 'URL diperlukan'."
+  },
+  {
+    "id": "TC002",
+    "title": "post_ai_business_analysis_with_valid_data",
+    "description": "Test POST /api/analyze with valid dashboard data to verify it returns 200 with quick analysis object and provider name."
+  },
+  {
+    "id": "TC003",
+    "title": "post_ai_smart_router_missing_task",
+    "description": "Test POST /api/router with missing task field to verify it returns 400 with error 'task and payload are required'."
+  },
+  {
+    "id": "TC004",
+    "title": "post_semantic_sheet_mapper_with_missing_sheetname",
+    "description": "Test POST /api/semantic-map with missing sheetName to verify it returns 400 with error 'sheetName and headers required'."
+  },
+  {
+    "id": "TC005",
+    "title": "post_entity_drill_down_with_missing_entityname",
+    "description": "Test POST /api/drill-down with missing entityName to verify it returns 400 with error 'entityType, entityName, and availableSheets required'."
+  },
+  {
+    "id": "TC006",
+    "title": "delete_bookmark_without_id",
+    "description": "Test DELETE /api/db/bookmarks without id query parameter to verify it returns 400 with error 'ID required'."
+  },
+  {
+    "id": "TC007",
+    "title": "post_sheet_cache_without_bookmarkid",
+    "description": "Test POST /api/db/cache with missing bookmarkId in body to verify it returns 400 with invalid request body error."
+  },
+  {
+    "id": "TC008",
+    "title": "delete_monthly_sales_without_id",
+    "description": "Test DELETE /api/db/monthly-sales without id query parameter to verify it returns 400 with error 'ID required'."
+  },
+  {
+    "id": "TC009",
+    "title": "post_chat_with_empty_messages_array",
+    "description": "Test POST /api/chat with empty messages array to verify it returns 400 with error 'messages array is required'."
+  },
+  {
+    "id": "TC010",
+    "title": "post_retur_csv_upload_with_invalid_file",
+    "description": "Test POST /api/db/retur/upload with invalid or empty CSV file to verify it returns 400 with 'Invalid file or empty CSV' error."
+  }
+]

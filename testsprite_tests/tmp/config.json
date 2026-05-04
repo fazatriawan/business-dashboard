@@ -1,0 +1,20 @@
+{
+  "status": "commited",
+  "type": "backend",
+  "scope": "codebase",
+  "localEndpoint": "http://localhost:3001",
+  "backendAuthType": "public",
+  "executionArgs": {
+    "projectName": "business-dashboard",
+    "projectPath": "C:\\projects\\business-dashboard",
+    "testIds": [
+      "TC002"
+    ],
+    "additionalInstruction": "Re-running TC002 after fixing fallback logic: analyzeWithFallback now tries all providers before failing, and the route returns 503 (not 500) when all providers are exhausted.",
+    "serverMode": "development",
+    "envs": {
+      "API_KEY": "sk-user-4J9QlvtoUNyk5pIFb3QLHBRws7tw6cZKpcBvMX_HiENf6Q1AzSWPDZBcR28r0AT3AamhX2knPu5rzqdySENvSJ1Z4yPaDism6EctVquECiXW_HJ4RvS5KOZiK2YH6-Lf5a8"
+    }
+  },
+  "serverPort": 56618
+}
