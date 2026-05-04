@@ -1,0 +1,68 @@
+[
+  {
+    "id": "TC001",
+    "title": "Restore database from a valid .db file",
+    "description": "This test uploads a valid .db file to restore the database and expects a success response that includes a backup filename.",
+    "category": "Database Import/Restore",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to a page in the app that provides access to the database restore/import UI."
+      },
+      {
+        "type": "action",
+        "description": "Open the database import/restore panel."
+      },
+      {
+        "type": "action",
+        "description": "Attach a valid SQLite .db file in the file input."
+      },
+      {
+        "type": "action",
+        "description": "Submit the database restore action."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a success confirmation is visible."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the UI displays a backup filename for the pre-restore backup."
+      }
+    ],
+    "priority": "High"
+  },
+  {
+    "id": "TC002",
+    "title": "Reject database restore when a non-.db file is uploaded",
+    "description": "This test attempts to upload a non-.db file for restore and expects the UI to show a validation error and not proceed with restore.",
+    "category": "Database Import/Restore",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to a page in the app that provides access to the database restore/import UI."
+      },
+      {
+        "type": "action",
+        "description": "Open the database import/restore panel."
+      },
+      {
+        "type": "action",
+        "description": "Attach a non-.db file in the file input."
+      },
+      {
+        "type": "action",
+        "description": "Submit the database restore action."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a file type validation error is visible."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify no restore success confirmation is shown."
+      }
+    ],
+    "priority": "Low"
+  }
+]

@@ -1,14 +1,17 @@
 import requests
 
+BASE_URL = "http://localhost:3001"
+
 def test_post_ai_smart_router_missing_task():
-    url = "http://localhost:3001/api/router"
+    url = f"{BASE_URL}/api/router"
     headers = {
         "Content-Type": "application/json"
     }
-    # Missing 'task' field, only 'payload' is sent
+    # Body missing 'task' field intentionally
     payload = {
-        "payload": {"text": "Example text"}
+        "payload": {"text": "Some text"}
     }
+
     try:
         response = requests.post(url, json=payload, headers=headers, timeout=30)
     except requests.RequestException as e:
@@ -20,8 +23,9 @@ def test_post_ai_smart_router_missing_task():
     except ValueError:
         assert False, "Response is not valid JSON"
 
-    expected_error = "task and payload are required"
-    assert "error" in json_resp, "Response JSON does not contain 'error' key"
-    assert json_resp["error"] == expected_error, f"Expected error message '{expected_error}', got '{json_resp['error']}'"
+    assert "error" in json_resp, "Response JSON missing 'error' key"
+    assert json_resp["error"] == "task and payload are required", (
+        f"Expected error message 'task and payload are required', got '{json_resp['error']}'"
+    )
 
 test_post_ai_smart_router_missing_task()

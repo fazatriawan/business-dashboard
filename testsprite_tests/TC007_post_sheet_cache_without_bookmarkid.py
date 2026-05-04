@@ -5,26 +5,31 @@ TIMEOUT = 30
 
 def test_post_sheet_cache_without_bookmarkid():
     url = f"{BASE_URL}/api/db/cache"
-    headers = {
-        "Content-Type": "application/json"
-    }
-    # Body missing required bookmarkId
+    # Missing bookmarkId in the body intentionally to trigger 400 error
     payload = {
         "sheetName": "Data Ads",
         "sheetType": "ads",
         "data": [ { "Tanggal": "01/05/2026", "Lead": "50" } ]
     }
-
-    response = requests.post(url, json=payload, headers=headers, timeout=TIMEOUT)
-
-    assert response.status_code == 400, f"Expected status code 400 but got {response.status_code}"
+    headers = {
+        "Content-Type": "application/json"
+    }
     try:
-        error_json = response.json()
-    except Exception:
-        error_json = None
+        response = requests.post(url, json=payload, headers=headers, timeout=TIMEOUT)
+    except requests.RequestException as e:
+        assert False, f"Request failed: {e}"
 
-    assert error_json is not None, "Response body should be JSON"
-    # The exact error message is not specified, so just confirm presence of error key or generic reason
-    assert "error" in error_json or "message" in error_json, "Response JSON should contain an error message"
+    assert response.status_code == 400, f"Expected status code 400, got {response.status_code}"
+    try:
+        json_resp = response.json()
+    except Exception:
+        json_resp = None
+
+    # The error may vary, so just check that error key exists and message indicates invalid request body
+    assert json_resp is not None, "Response is not a valid JSON"
+    assert "error" in json_resp or "message" in json_resp, "Response JSON missing error message"
+    error_message = json_resp.get("error") or json_resp.get("message")
+    assert error_message and ("invalid" in error_message.lower() or "bookmarkid" in error_message.lower()), \
+        f"Unexpected error message: {error_message}"
 
 test_post_sheet_cache_without_bookmarkid()
