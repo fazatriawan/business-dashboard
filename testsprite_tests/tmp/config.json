@@ -8,11 +8,11 @@
     "projectName": "business-dashboard",
     "projectPath": "C:\\projects\\business-dashboard",
     "testIds": [],
-    "additionalInstruction": "Frontend tests for the business dashboard Next.js app. The app has no login page — it loads directly to the dashboard.",
-    "serverMode": "development",
+    "additionalInstruction": "Production server running on port 3001. Run all tests including frontend tests from testsprite_frontend_test_plan.json. Frontend tests involve the Database Import/Restore UI (ExportDB component).",
+    "serverMode": "production",
     "envs": {
       "API_KEY": "sk-user-4J9QlvtoUNyk5pIFb3QLHBRws7tw6cZKpcBvMX_HiENf6Q1AzSWPDZBcR28r0AT3AamhX2knPu5rzqdySENvSJ1Z4yPaDism6EctVquECiXW_HJ4RvS5KOZiK2YH6-Lf5a8"
     }
   },
-  "serverPort": 58823
+  "serverPort": 63834
 }

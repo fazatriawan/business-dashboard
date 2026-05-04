@@ -5,7 +5,7 @@
 
 ## 1️⃣ Document Metadata
 - **Project Name:** business-dashboard
-- **Date:** 2026-05-04
+- **Date:** 2026-05-05
 - **Prepared by:** TestSprite AI Team
 
 ---
@@ -14,7 +14,7 @@
 
 #### Test TC001 get_google_sheet_proxy_without_url
 - **Test Code:** [TC001_get_google_sheet_proxy_without_url.py](./TC001_get_google_sheet_proxy_without_url.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/7db0e3a1-cd33-4433-b334-d72be147b359
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/293de25f-99c7-4ba5-bb62-98cb91235cce
 - **Status:** ✅ Passed
 - **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
 ---
@@ -24,67 +24,67 @@
 - **Test Error:** Traceback (most recent call last):
   File "/var/task/handler.py", line 258, in run_with_retry
     exec(code, exec_env)
-  File "<string>", line 74, in <module>
-  File "<string>", line 56, in test_post_ai_business_analysis_with_valid_data
-AssertionError: Expected status 200 but got 503
+  File "<string>", line 78, in <module>
+  File "<string>", line 59, in test_post_ai_business_analysis_with_valid_data
+AssertionError: Expected status code 200, got 503
 
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/61c3b6c0-9c42-4c11-a156-8ca57f06cca8
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/e3a0d1a8-ae6d-46bf-a96a-e475ec42c5f7
 - **Status:** ❌ Failed
 - **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
 ---
 
 #### Test TC003 post_ai_smart_router_missing_task
 - **Test Code:** [TC003_post_ai_smart_router_missing_task.py](./TC003_post_ai_smart_router_missing_task.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/d8deda15-a7fd-4022-ac16-22bb3d8deb4f
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/6a02021f-7674-46e7-ac07-404501a34d50
 - **Status:** ✅ Passed
 - **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
 ---
 
 #### Test TC004 post_semantic_sheet_mapper_with_missing_sheetname
 - **Test Code:** [TC004_post_semantic_sheet_mapper_with_missing_sheetname.py](./TC004_post_semantic_sheet_mapper_with_missing_sheetname.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/2f62986f-a3b3-469c-ba3e-3fc4e6cd7645
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/0363bd1f-83bd-4831-b165-029bb6a5c714
 - **Status:** ✅ Passed
 - **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
 ---
 
 #### Test TC005 post_entity_drill_down_with_missing_entityname
 - **Test Code:** [TC005_post_entity_drill_down_with_missing_entityname.py](./TC005_post_entity_drill_down_with_missing_entityname.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/fa6d7c2b-9780-48cd-a97b-f69e933e1b5e
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/e77808d9-a3fc-41a6-ab51-0b462f661015
 - **Status:** ✅ Passed
 - **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
 ---
 
 #### Test TC006 delete_bookmark_without_id
 - **Test Code:** [TC006_delete_bookmark_without_id.py](./TC006_delete_bookmark_without_id.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/7aaf2b9c-5117-4223-868d-785f6344dbd8
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/c98b1b38-03f9-49e7-b25d-d2aaa3f4ea28
 - **Status:** ✅ Passed
 - **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
 ---
 
 #### Test TC007 post_sheet_cache_without_bookmarkid
 - **Test Code:** [TC007_post_sheet_cache_without_bookmarkid.py](./TC007_post_sheet_cache_without_bookmarkid.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/db5e0334-154d-475a-8c6c-80a0ec51c716
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/8ff25537-d6d6-4c18-b5c0-132a917d89e3
 - **Status:** ✅ Passed
 - **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
 ---
 
 #### Test TC008 delete_monthly_sales_without_id
 - **Test Code:** [TC008_delete_monthly_sales_without_id.py](./TC008_delete_monthly_sales_without_id.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/567ba6f4-bd1a-40c0-b4e9-f9dde14d6910
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/97f1522b-2f16-431e-ae8b-1e7366fc46ea
 - **Status:** ✅ Passed
 - **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
 ---
 
 #### Test TC009 post_chat_with_empty_messages_array
 - **Test Code:** [TC009_post_chat_with_empty_messages_array.py](./TC009_post_chat_with_empty_messages_array.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/0ecfc6b5-e597-48e9-8baf-0ca7a9b1071c
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/daf8305f-4082-4454-be09-9b80e1cbb53a
 - **Status:** ✅ Passed
 - **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
 ---
 
 #### Test TC010 post_retur_csv_upload_with_invalid_file
 - **Test Code:** [TC010_post_retur_csv_upload_with_invalid_file.py](./TC010_post_retur_csv_upload_with_invalid_file.py)
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/d9bd414b-59ad-49e1-8059-5b1d4f163ba0
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/3deb78bc-de9d-4962-a8c3-d2ece5fc4c33
 - **Status:** ✅ Passed
 - **Analysis / Findings:** {{TODO:AI_ANALYSIS}}.
 ---

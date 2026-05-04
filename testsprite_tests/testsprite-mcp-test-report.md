@@ -5,23 +5,24 @@
 
 ## 1️⃣ Document Metadata
 - **Project Name:** business-dashboard
-- **Date:** 2026-05-04
+- **Date:** 2026-05-05
 - **Prepared by:** TestSprite AI Team
+- **Server Mode:** Production (`npm run build && npm run start`, port 3001)
 
 ---
 
 ## 2️⃣ Requirement Validation Summary
 
 ### Requirement: Google Sheet Proxy API
-- **Description:** Fetches CSV data from a public Google Sheets URL via server-side proxy.
+- **Description:** Fetches CSV data dari public Google Sheets URL via server-side proxy.
 
 #### Test TC001 get_google_sheet_proxy_without_url
 - **Test Code:** [TC001_get_google_sheet_proxy_without_url.py](./TC001_get_google_sheet_proxy_without_url.py)
 - **Test Error:**
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/7db0e3a1-cd33-4433-b334-d72be147b359
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/293de25f-99c7-4ba5-bb62-98cb91235cce
 - **Status:** ✅ Passed
 - **Severity:** LOW
-- **Analysis / Findings:** Endpoint mengembalikan HTTP 400 dengan "URL diperlukan" saat parameter `url` tidak ada.
+- **Analysis / Findings:** Endpoint mengembalikan HTTP 400 dengan "URL diperlukan" saat parameter `url` tidak ada. Lulus di production mode setelah clean rebuild (build artifact `./948.js` yang korup telah dibersihkan).
 
 ---
 
@@ -30,11 +31,11 @@
 
 #### Test TC002 post_ai_business_analysis_with_valid_data
 - **Test Code:** [TC002_post_ai_business_analysis_with_valid_data.py](./TC002_post_ai_business_analysis_with_valid_data.py)
-- **Test Error:** AssertionError: Expected status 200 but got 503
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/61c3b6c0-9c42-4c11-a156-8ca57f06cca8
+- **Test Error:** AssertionError: Expected status code 200, got 503
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/e3a0d1a8-ae6d-46bf-a96a-e475ec42c5f7
 - **Status:** ⚠️ Environment Issue
 - **Severity:** LOW
-- **Analysis / Findings:** Code behavior sudah benar — 503 adalah respons yang tepat saat semua AI provider gagal. Kegagalan ini disebabkan oleh API keys (Gemini/Claude/Kimi) yang quota-habis atau expired di test environment, bukan bug pada kode. Test akan pass kembali dengan API keys yang valid.
+- **Analysis / Findings:** Code behavior sudah benar — 503 adalah respons yang tepat saat semua provider gagal. Penyebab: (1) Gemini model `gemini-1.5-pro` deprecated → ganti ke `gemini-2.0-flash`, (2) Claude credit balance habis, (3) Kimi invalid authentication. Perbarui API keys di `.env.local` untuk menyelesaikan ini.
 
 ---
 
@@ -44,10 +45,10 @@
 #### Test TC003 post_ai_smart_router_missing_task
 - **Test Code:** [TC003_post_ai_smart_router_missing_task.py](./TC003_post_ai_smart_router_missing_task.py)
 - **Test Error:**
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/d8deda15-a7fd-4022-ac16-22bb3d8deb4f
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/6a02021f-7674-46e7-ac07-404501a34d50
 - **Status:** ✅ Passed
 - **Severity:** LOW
-- **Analysis / Findings:** Endpoint mengembalikan HTTP 400 dengan "task and payload are required" saat field `task` tidak ada.
+- **Analysis / Findings:** Endpoint mengembalikan HTTP 400 dengan "task and payload are required" saat `task` tidak ada.
 
 ---
 
@@ -57,7 +58,7 @@
 #### Test TC004 post_semantic_sheet_mapper_with_missing_sheetname
 - **Test Code:** [TC004_post_semantic_sheet_mapper_with_missing_sheetname.py](./TC004_post_semantic_sheet_mapper_with_missing_sheetname.py)
 - **Test Error:**
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/2f62986f-a3b3-469c-ba3e-3fc4e6cd7645
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/0363bd1f-83bd-4831-b165-029bb6a5c714
 - **Status:** ✅ Passed
 - **Severity:** LOW
 - **Analysis / Findings:** Endpoint mengembalikan HTTP 400 dengan "sheetName and headers required" saat `sheetName` tidak ada.
@@ -70,7 +71,7 @@
 #### Test TC005 post_entity_drill_down_with_missing_entityname
 - **Test Code:** [TC005_post_entity_drill_down_with_missing_entityname.py](./TC005_post_entity_drill_down_with_missing_entityname.py)
 - **Test Error:**
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/fa6d7c2b-9780-48cd-a97b-f69e933e1b5e
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/e77808d9-a3fc-41a6-ab51-0b462f661015
 - **Status:** ✅ Passed
 - **Severity:** LOW
 - **Analysis / Findings:** Endpoint mengembalikan HTTP 400 dengan "entityType, entityName, and availableSheets required" saat `entityName` tidak ada.
@@ -83,10 +84,10 @@
 #### Test TC006 delete_bookmark_without_id
 - **Test Code:** [TC006_delete_bookmark_without_id.py](./TC006_delete_bookmark_without_id.py)
 - **Test Error:**
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/7aaf2b9c-5117-4223-868d-785f6344dbd8
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/c98b1b38-03f9-49e7-b25d-d2aaa3f4ea28
 - **Status:** ✅ Passed
 - **Severity:** LOW
-- **Analysis / Findings:** DELETE endpoint mengembalikan HTTP 400 dengan "ID required" saat parameter `id` tidak ada.
+- **Analysis / Findings:** DELETE endpoint mengembalikan HTTP 400 dengan "ID required" saat `id` tidak ada.
 
 ---
 
@@ -96,10 +97,10 @@
 #### Test TC007 post_sheet_cache_without_bookmarkid
 - **Test Code:** [TC007_post_sheet_cache_without_bookmarkid.py](./TC007_post_sheet_cache_without_bookmarkid.py)
 - **Test Error:**
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/db5e0334-154d-475a-8c6c-80a0ec51c716
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/8ff25537-d6d6-4c18-b5c0-132a917d89e3
 - **Status:** ✅ Passed
 - **Severity:** LOW
-- **Analysis / Findings:** POST endpoint mengembalikan HTTP 400 yang bersih saat `bookmarkId` tidak ada. Bug sebelumnya (500) sudah diperbaiki.
+- **Analysis / Findings:** POST endpoint mengembalikan HTTP 400 yang bersih saat `bookmarkId` tidak ada (bug 500 sebelumnya sudah diperbaiki).
 
 ---
 
@@ -109,10 +110,10 @@
 #### Test TC008 delete_monthly_sales_without_id
 - **Test Code:** [TC008_delete_monthly_sales_without_id.py](./TC008_delete_monthly_sales_without_id.py)
 - **Test Error:**
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/567ba6f4-bd1a-40c0-b4e9-f9dde14d6910
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/97f1522b-2f16-431e-ae8b-1e7366fc46ea
 - **Status:** ✅ Passed
 - **Severity:** LOW
-- **Analysis / Findings:** DELETE endpoint mengembalikan HTTP 400 dengan "ID required" saat parameter `id` tidak ada.
+- **Analysis / Findings:** DELETE endpoint mengembalikan HTTP 400 dengan "ID required" saat `id` tidak ada.
 
 ---
 
@@ -122,7 +123,7 @@
 #### Test TC009 post_chat_with_empty_messages_array
 - **Test Code:** [TC009_post_chat_with_empty_messages_array.py](./TC009_post_chat_with_empty_messages_array.py)
 - **Test Error:**
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/0ecfc6b5-e597-48e9-8baf-0ca7a9b1071c
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/daf8305f-4082-4454-be09-9b80e1cbb53a
 - **Status:** ✅ Passed
 - **Severity:** LOW
 - **Analysis / Findings:** Endpoint mengembalikan HTTP 400 dengan "messages array is required" saat messages kosong.
@@ -135,38 +136,38 @@
 #### Test TC010 post_retur_csv_upload_with_invalid_file
 - **Test Code:** [TC010_post_retur_csv_upload_with_invalid_file.py](./TC010_post_retur_csv_upload_with_invalid_file.py)
 - **Test Error:**
-- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/d9bd414b-59ad-49e1-8059-5b1d4f163ba0
+- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/3deb78bc-de9d-4962-a8c3-d2ece5fc4c33
 - **Status:** ✅ Passed
 - **Severity:** LOW
 - **Analysis / Findings:** Endpoint mengembalikan HTTP 400 saat file CSV kosong atau tidak valid.
 
 ---
 
-### Requirement: Database Import/Restore UI
+### Requirement: Database Import/Restore UI (Frontend)
 - **Description:** UI untuk restore database SQLite dari file .db, termasuk validasi tipe file dan konfirmasi backup.
 
 #### Test FE001 restore_database_from_valid_db_file
 - **Test Code:** [testsprite_frontend_test_plan.json](./testsprite_frontend_test_plan.json)
 - **Test Error:**
-- **Test Visualization and Result:** *(Frontend test — memerlukan browser automation)*
+- **Test Visualization and Result:** *(Awaiting Playwright execution)*
 - **Status:** ⏳ Pending
 - **Severity:** HIGH
-- **Analysis / Findings:** Test plan sudah dibuat: upload valid .db file → verifikasi konfirmasi sukses dan nama backup ditampilkan. Memerlukan eksekusi Playwright di production mode untuk hasil lengkap.
+- **Analysis / Findings:** Test plan sudah dibuat. Steps: navigate ke halaman restore → upload valid `.db` file → verify konfirmasi sukses dan nama backup muncul di UI.
 
 #### Test FE002 reject_restore_with_non_db_file
 - **Test Code:** [testsprite_frontend_test_plan.json](./testsprite_frontend_test_plan.json)
 - **Test Error:**
-- **Test Visualization and Result:** *(Frontend test — memerlukan browser automation)*
+- **Test Visualization and Result:** *(Awaiting Playwright execution)*
 - **Status:** ⏳ Pending
 - **Severity:** LOW
-- **Analysis / Findings:** Test plan sudah dibuat: upload file non-.db → verifikasi error validasi tipe file muncul dan restore tidak dilanjutkan. Memerlukan eksekusi Playwright di production mode untuk hasil lengkap.
+- **Analysis / Findings:** Test plan sudah dibuat. Steps: upload file non-`.db` → verify error validasi tipe file muncul dan restore tidak dilanjutkan.
 
 ---
 
 ## 3️⃣ Coverage & Matching Metrics
 
-- **Backend: 9/10 passed (90%)** — 1 environment issue (API keys)
-- **Frontend: 0/2 executed** — test plan ready, pending production-mode run
+- **Backend (production mode): 9/10 passed (90%)** — 1 environment issue
+- **Frontend UI: 2/2 plans ready** — pending Playwright browser execution
 
 | Requirement                     | Total Tests | ✅ Passed | ⚠️ Env Issue | ⏳ Pending |
 |--------------------------------|-------------|-----------|-------------|-----------|
@@ -187,19 +188,20 @@
 
 ## 4️⃣ Key Gaps / Risks
 
-> **Backend: 9/10 passed. 1 environment issue. Frontend: 2 test plans pending eksekusi.**
+> **Backend production: 9/10 passed. 1 environment issue. Frontend: 2 test plans pending.**
 
-**Catatan TC002 (environment issue, bukan bug):**
-`POST /api/analyze` mengembalikan 503 di test environment karena API keys (Gemini/Claude/Kimi) quota-habis atau expired. Kode sudah benar — 503 adalah respons yang tepat. Untuk test pass, perbarui API keys di `.env.local`.
+**Temuan dari production mode run:**
 
-**Frontend tests pending:**
-2 test case untuk Database Import/Restore UI (`FE001`, `FE002`) sudah ada di `testsprite_frontend_test_plan.json`. Untuk menjalankan frontend tests secara penuh, build dan jalankan server production terlebih dahulu:
-```
-npm run build && npm run start
-```
-Lalu jalankan ulang TestSprite dengan `serverMode: production`.
+1. **Build artifact korup** — `.next` folder yang di-build sebelumnya mengandung chunk `./948.js` yang hilang, menyebabkan semua routes return 500. **Fix:** clean rebuild (`rm -rf .next && npm run build`) sudah menyelesaikan masalah ini. Disarankan menambahkan `.next/` ke `.gitignore` jika belum ada.
+
+2. **TC002 environment issue (API keys)** — Semua 3 provider gagal:
+   - Gemini: model `gemini-1.5-pro` deprecated → ganti ke `gemini-2.0-flash` di `.env.local`
+   - Claude: credit balance habis → top up atau ganti key
+   - Kimi: invalid authentication → perbarui `KIMI_API_KEY`
+
+3. **Frontend tests FE001/FE002** — Test plan Database Import/Restore UI sudah dibuat tapi memerlukan browser automation (Playwright) untuk dieksekusi. TestSprite saat ini mengeksekusi tests sebagai Python HTTP requests (BACKEND mode). Frontend UI tests memerlukan konfigurasi Playwright terpisah.
 
 **Risiko keamanan yang masih ada:**
-1. Tidak ada autentikasi pada semua 16 endpoint API — akses publik tanpa auth.
-2. SSRF via Sheet Proxy — `GET /api/sheet?url=` menerima URL arbitrer tanpa whitelist.
-3. Database Restore tidak terproteksi — siapa pun dapat mengganti seluruh database.
+- Semua endpoint tidak memiliki autentikasi
+- SSRF via `/api/sheet?url=`
+- Database restore tidak terproteksi (`POST /api/db/import`)

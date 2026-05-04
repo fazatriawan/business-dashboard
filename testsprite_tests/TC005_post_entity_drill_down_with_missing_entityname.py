@@ -1,28 +1,31 @@
 import requests
 
-BASE_URL = "http://localhost:3001"
-
-
 def test_post_entity_drill_down_with_missing_entityname():
-    url = f"{BASE_URL}/api/drill-down"
-    payload = {
-        "entityType": "adv",
-        # "entityName" is intentionally missing
-        "availableSheets": ["ads", "spend", "orders"]
-    }
+    base_url = "http://localhost:3001"
+    url = f"{base_url}/api/drill-down"
     headers = {
         "Content-Type": "application/json"
+    }
+    # Missing entityName field
+    payload = {
+        "entityType": "adv",
+        # "entityName" is omitted intentionally to test validation
+        "availableSheets": ["ads", "spend", "orders"]
     }
 
     try:
         response = requests.post(url, json=payload, headers=headers, timeout=30)
-        assert response.status_code == 400, f"Expected status 400 but got {response.status_code}"
-        json_resp = response.json()
-        expected_error = "entityType, entityName, and availableSheets required"
-        assert "error" in json_resp, "Response JSON missing 'error' field"
-        assert json_resp["error"] == expected_error, f"Expected error message '{expected_error}' but got '{json_resp['error']}'"
     except requests.RequestException as e:
         assert False, f"Request failed: {e}"
 
+    assert response.status_code == 400, f"Expected status code 400 but got {response.status_code}"
+    try:
+        json_resp = response.json()
+    except ValueError:
+        assert False, "Response is not valid JSON"
+
+    expected_error = "entityType, entityName, and availableSheets required"
+    assert "error" in json_resp, "Response JSON does not contain 'error' key"
+    assert json_resp["error"] == expected_error, f"Expected error message '{expected_error}', got '{json_resp['error']}'"
 
 test_post_entity_drill_down_with_missing_entityname()

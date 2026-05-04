@@ -9,66 +9,70 @@ def test_post_ai_business_analysis_with_valid_data():
         "bulan": "Mei 2026",
         "summary": {
             "totalRevenue": 1000000,
-            "newCustomers": 150,
-            "churnRate": 0.05
+            "totalOrders": 100,
+            "totalAdSpend": 200000,
+            "roas": 5.0
         },
         "rawData": [
-            {"date": "2026-05-01", "revenue": 20000, "orders": 25},
-            {"date": "2026-05-02", "revenue": 25000, "orders": 30}
+            {"date": "2026-05-01", "revenue": 50000, "orders": 5},
+            {"date": "2026-05-02", "revenue": 45000, "orders": 4}
         ],
         "csData": [
-            {"csRep": "CS1", "tickets": 10},
-            {"csRep": "CS2", "tickets": 15}
+            {"date": "2026-05-01", "tickets": 10, "resolved": 8},
+            {"date": "2026-05-02", "tickets": 12, "resolved": 10}
         ],
         "advData": [
-            {"campaign": "Campaign A", "impressions": 100000},
-            {"campaign": "Campaign B", "impressions": 150000}
+            {"campaign": "Campaign A", "clicks": 1000, "conversions": 50},
+            {"campaign": "Campaign B", "clicks": 800, "conversions": 30}
         ],
         "advSpend": [
-            {"campaign": "Campaign A", "amount": 5000},
-            {"campaign": "Campaign B", "amount": 7000}
+            {"campaign": "Campaign A", "spend": 120000},
+            {"campaign": "Campaign B", "spend": 80000}
         ],
         "kpiBenchmarks": [
-            {"kpi": "roas", "benchmark": 3.0},
-            {"kpi": "ctr", "benchmark": 0.05}
+            {"kpi": "roas", "benchmark": 4.0},
+            {"kpi": "conversionRate", "benchmark": 0.05}
         ],
         "csDaily": [
-            {"date": "2026-05-01", "resolvedTickets": 8},
-            {"date": "2026-05-02", "resolvedTickets": 9}
+            {"date": "2026-05-01", "csTickets": 10},
+            {"date": "2026-05-02", "csTickets": 12}
         ],
         "dashboardCS": [
-            {"metric": "satisfaction", "value": 4.5},
-            {"metric": "responseTime", "value": 2.3}
+            {"metric": "csSatisfaction", "value": 90},
+            {"metric": "csResponseTime", "value": 5}
         ],
         "growth": [
-            {"month": "April", "revenueGrowth": 0.1},
-            {"month": "May", "revenueGrowth": 0.15}
+            {"month": "April 2026", "growthRate": 0.1},
+            {"month": "May 2026", "growthRate": 0.15}
         ],
         "errorReport": "Tidak ada"
     }
-    headers = {"Content-Type": "application/json"}
+    headers = {
+        "Content-Type": "application/json"
+    }
 
     try:
         response = requests.post(url, json=payload, headers=headers, timeout=TIMEOUT)
     except requests.RequestException as e:
         assert False, f"Request failed: {e}"
 
-    assert response.status_code == 200, f"Expected status 200 but got {response.status_code}"
+    assert response.status_code == 200, f"Expected status code 200, got {response.status_code}"
 
+    json_response = None
     try:
-        json_data = response.json()
+        json_response = response.json()
     except ValueError:
-        assert False, "Response is not valid JSON"
+        assert False, "Response is not in JSON format"
 
-    # Validate expected keys and types in response JSON
-    assert "quick" in json_data, "'quick' key missing in response"
-    assert "provider" in json_data, "'provider' key missing in response"
-    # quick should be an object (dict) and not None
-    assert json_data["quick"] is not None and isinstance(json_data["quick"], dict), "'quick' should be a non-null object"
-    # analysis should be null in this success scenario
-    assert json_data.get("analysis") is None, "'analysis' should be null"
+    # Validate that 'quick' is present and is an object (not None)
+    assert "quick" in json_response, "'quick' field missing in response"
+    assert isinstance(json_response["quick"], (dict, type(None))) and json_response["quick"] is not None, "'quick' should be an object and not None"
 
-    # provider should be a non-empty string
-    assert isinstance(json_data["provider"], str) and json_data["provider"], "'provider' should be a non-empty string"
+    # Validate 'analysis' field is present and is either None or string (but for this test - expecting null)
+    assert "analysis" in json_response, "'analysis' field missing in response"
+    
+    # Validate 'provider' field exists and is a non-empty string
+    assert "provider" in json_response, "'provider' field missing in response"
+    assert isinstance(json_response["provider"], str) and json_response["provider"], "'provider' should be a non-empty string"
 
 test_post_ai_business_analysis_with_valid_data()

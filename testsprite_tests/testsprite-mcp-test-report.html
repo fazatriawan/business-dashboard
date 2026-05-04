@@ -1213,7 +1213,7 @@ body {
         </div>
         <div class="metadata-row">
           <div class="metadata-label text-body-medium">Date</div>
-          <div class="metadata-value text-body">04/05/2026</div>
+          <div class="metadata-value text-body">05/05/2026</div>
         </div>
         <div class="metadata-row">
           <div class="metadata-label text-body-medium">Prepared by</div>
@@ -1238,21 +1238,31 @@ body {
             <li><span class="coverage-highlight">Key gaps / risks:</span>
             
               <blockquote>
-<p><strong>Backend: 9/10 passed. 1 environment issue. Frontend: 2 test plans pending eksekusi.</strong></p>
+<p><strong>Backend production: 9/10 passed. 1 environment issue. Frontend: 2 test plans pending.</strong></p>
 </blockquote>
-<p><strong>Catatan TC002 (environment issue, bukan bug):</strong>
-<code>POST /api/analyze</code> mengembalikan 503 di test environment karena API keys (Gemini/Claude/Kimi) quota-habis atau expired. Kode sudah benar — 503 adalah respons yang tepat. Untuk test pass, perbarui API keys di <code>.env.local</code>.</p>
-<p><strong>Frontend tests pending:</strong>
-2 test case untuk Database Import/Restore UI (<code>FE001</code>, <code>FE002</code>) sudah ada di <code>testsprite_frontend_test_plan.json</code>. Untuk menjalankan frontend tests secara penuh, build dan jalankan server production terlebih dahulu:</p>
-<pre><code>npm run build &amp;&amp; npm run start
-</code></pre>
-<p>Lalu jalankan ulang TestSprite dengan <code>serverMode: production</code>.</p>
-<p><strong>Risiko keamanan yang masih ada:</strong></p>
+<p><strong>Temuan dari production mode run:</strong></p>
 <ol>
-<li>Tidak ada autentikasi pada semua 16 endpoint API — akses publik tanpa auth.</li>
-<li>SSRF via Sheet Proxy — <code>GET /api/sheet?url=</code> menerima URL arbitrer tanpa whitelist.</li>
-<li>Database Restore tidak terproteksi — siapa pun dapat mengganti seluruh database.</li>
+<li>
+<p><strong>Build artifact korup</strong> — <code>.next</code> folder yang di-build sebelumnya mengandung chunk <code>./948.js</code> yang hilang, menyebabkan semua routes return 500. <strong>Fix:</strong> clean rebuild (<code>rm -rf .next &amp;&amp; npm run build</code>) sudah menyelesaikan masalah ini. Disarankan menambahkan <code>.next/</code> ke <code>.gitignore</code> jika belum ada.</p>
+</li>
+<li>
+<p><strong>TC002 environment issue (API keys)</strong> — Semua 3 provider gagal:</p>
+<ul>
+<li>Gemini: model <code>gemini-1.5-pro</code> deprecated → ganti ke <code>gemini-2.0-flash</code> di <code>.env.local</code></li>
+<li>Claude: credit balance habis → top up atau ganti key</li>
+<li>Kimi: invalid authentication → perbarui <code>KIMI_API_KEY</code></li>
+</ul>
+</li>
+<li>
+<p><strong>Frontend tests FE001/FE002</strong> — Test plan Database Import/Restore UI sudah dibuat tapi memerlukan browser automation (Playwright) untuk dieksekusi. TestSprite saat ini mengeksekusi tests sebagai Python HTTP requests (BACKEND mode). Frontend UI tests memerlukan konfigurasi Playwright terpisah.</p>
+</li>
 </ol>
+<p><strong>Risiko keamanan yang masih ada:</strong></p>
+<ul>
+<li>Semua endpoint tidak memiliki autentikasi</li>
+<li>SSRF via <code>/api/sheet?url=</code></li>
+<li>Database restore tidak terproteksi (<code>POST /api/db/import</code>)</li>
+</ul>
 
             </li>
 </ul>
@@ -1357,7 +1367,7 @@ body {
         
 
             <div class="table-row">
-              <div class="table-cell"><span class="text-body">Requirement: Database Import/Restore UI</span></div>
+              <div class="table-cell"><span class="text-body">Requirement: Database Import/Restore UI (Frontend)</span></div>
               <div class="table-cell"><span class="text-body">2</span></div>
               <div class="table-cell"><span class="text-body">0</span></div>
               <div class="table-cell"><span class="text-body">0</span></div>
@@ -1416,12 +1426,12 @@ body {
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Error</div>
-                    <div class="test-field-value text-body">- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/7db0e3a1-cd33-4433-b334-d72be147b359</div>
+                    <div class="test-field-value text-body">- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/293de25f-99c7-4ba5-bb62-98cb91235cce</div>
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Visualization and Result</div>
                     <div class="test-field-value text-body">
-                      <a href="https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/7db0e3a1-cd33-4433-b334-d72be147b359" class="text-link">View Results</a>
+                      <a href="https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/293de25f-99c7-4ba5-bb62-98cb91235cce" class="text-link">View Results</a>
                     </div>
                   </div>
                   <div class="test-field">
@@ -1444,7 +1454,7 @@ body {
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Analysis / Findings</div>
-                    <div class="test-field-value text-body">Endpoint mengembalikan HTTP 400 dengan "URL diperlukan" saat parameter `url` tidak ada.</div>
+                    <div class="test-field-value text-body">Endpoint mengembalikan HTTP 400 dengan "URL diperlukan" saat parameter `url` tidak ada. Lulus di production mode setelah clean rebuild (build artifact `./948.js` yang korup telah dibersihkan).</div>
                   </div>
                 </div>
               </div>
@@ -1489,12 +1499,12 @@ body {
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Error</div>
-                    <div class="test-field-value text-body">AssertionError: Expected status 200 but got 503</div>
+                    <div class="test-field-value text-body">AssertionError: Expected status code 200, got 503</div>
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Visualization and Result</div>
                     <div class="test-field-value text-body">
-                      <a href="https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/61c3b6c0-9c42-4c11-a156-8ca57f06cca8" class="text-link">View Results</a>
+                      <a href="https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/e3a0d1a8-ae6d-46bf-a96a-e475ec42c5f7" class="text-link">View Results</a>
                     </div>
                   </div>
                   <div class="test-field">
@@ -1520,7 +1530,7 @@ body {
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Analysis / Findings</div>
-                    <div class="test-field-value text-body">Code behavior sudah benar — 503 adalah respons yang tepat saat semua AI provider gagal. Kegagalan ini disebabkan oleh API keys (Gemini/Claude/Kimi) yang quota-habis atau expired di test environment, bukan bug pada kode. Test akan pass kembali dengan API keys yang valid.</div>
+                    <div class="test-field-value text-body">Code behavior sudah benar — 503 adalah respons yang tepat saat semua provider gagal. Penyebab: (1) Gemini model `gemini-1.5-pro` deprecated → ganti ke `gemini-2.0-flash`, (2) Claude credit balance habis, (3) Kimi invalid authentication. Perbarui API keys di `.env.local` untuk menyelesaikan ini.</div>
                   </div>
                 </div>
               </div>
@@ -1565,12 +1575,12 @@ body {
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Error</div>
-                    <div class="test-field-value text-body">- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/d8deda15-a7fd-4022-ac16-22bb3d8deb4f</div>
+                    <div class="test-field-value text-body">- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/6a02021f-7674-46e7-ac07-404501a34d50</div>
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Visualization and Result</div>
                     <div class="test-field-value text-body">
-                      <a href="https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/d8deda15-a7fd-4022-ac16-22bb3d8deb4f" class="text-link">View Results</a>
+                      <a href="https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/6a02021f-7674-46e7-ac07-404501a34d50" class="text-link">View Results</a>
                     </div>
                   </div>
                   <div class="test-field">
@@ -1593,7 +1603,7 @@ body {
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Analysis / Findings</div>
-                    <div class="test-field-value text-body">Endpoint mengembalikan HTTP 400 dengan "task and payload are required" saat field `task` tidak ada.</div>
+                    <div class="test-field-value text-body">Endpoint mengembalikan HTTP 400 dengan "task and payload are required" saat `task` tidak ada.</div>
                   </div>
                 </div>
               </div>
@@ -1638,12 +1648,12 @@ body {
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Error</div>
-                    <div class="test-field-value text-body">- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/2f62986f-a3b3-469c-ba3e-3fc4e6cd7645</div>
+                    <div class="test-field-value text-body">- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/0363bd1f-83bd-4831-b165-029bb6a5c714</div>
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Visualization and Result</div>
                     <div class="test-field-value text-body">
-                      <a href="https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/2f62986f-a3b3-469c-ba3e-3fc4e6cd7645" class="text-link">View Results</a>
+                      <a href="https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/0363bd1f-83bd-4831-b165-029bb6a5c714" class="text-link">View Results</a>
                     </div>
                   </div>
                   <div class="test-field">
@@ -1711,12 +1721,12 @@ body {
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Error</div>
-                    <div class="test-field-value text-body">- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/fa6d7c2b-9780-48cd-a97b-f69e933e1b5e</div>
+                    <div class="test-field-value text-body">- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/e77808d9-a3fc-41a6-ab51-0b462f661015</div>
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Visualization and Result</div>
                     <div class="test-field-value text-body">
-                      <a href="https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/fa6d7c2b-9780-48cd-a97b-f69e933e1b5e" class="text-link">View Results</a>
+                      <a href="https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/e77808d9-a3fc-41a6-ab51-0b462f661015" class="text-link">View Results</a>
                     </div>
                   </div>
                   <div class="test-field">
@@ -1784,12 +1794,12 @@ body {
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Error</div>
-                    <div class="test-field-value text-body">- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/7aaf2b9c-5117-4223-868d-785f6344dbd8</div>
+                    <div class="test-field-value text-body">- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/c98b1b38-03f9-49e7-b25d-d2aaa3f4ea28</div>
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Visualization and Result</div>
                     <div class="test-field-value text-body">
-                      <a href="https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/7aaf2b9c-5117-4223-868d-785f6344dbd8" class="text-link">View Results</a>
+                      <a href="https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/c98b1b38-03f9-49e7-b25d-d2aaa3f4ea28" class="text-link">View Results</a>
                     </div>
                   </div>
                   <div class="test-field">
@@ -1812,7 +1822,7 @@ body {
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Analysis / Findings</div>
-                    <div class="test-field-value text-body">DELETE endpoint mengembalikan HTTP 400 dengan "ID required" saat parameter `id` tidak ada.</div>
+                    <div class="test-field-value text-body">DELETE endpoint mengembalikan HTTP 400 dengan "ID required" saat `id` tidak ada.</div>
                   </div>
                 </div>
               </div>
@@ -1857,12 +1867,12 @@ body {
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Error</div>
-                    <div class="test-field-value text-body">- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/db5e0334-154d-475a-8c6c-80a0ec51c716</div>
+                    <div class="test-field-value text-body">- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/8ff25537-d6d6-4c18-b5c0-132a917d89e3</div>
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Visualization and Result</div>
                     <div class="test-field-value text-body">
-                      <a href="https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/db5e0334-154d-475a-8c6c-80a0ec51c716" class="text-link">View Results</a>
+                      <a href="https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/8ff25537-d6d6-4c18-b5c0-132a917d89e3" class="text-link">View Results</a>
                     </div>
                   </div>
                   <div class="test-field">
@@ -1885,7 +1895,7 @@ body {
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Analysis / Findings</div>
-                    <div class="test-field-value text-body">POST endpoint mengembalikan HTTP 400 yang bersih saat `bookmarkId` tidak ada. Bug sebelumnya (500) sudah diperbaiki.</div>
+                    <div class="test-field-value text-body">POST endpoint mengembalikan HTTP 400 yang bersih saat `bookmarkId` tidak ada (bug 500 sebelumnya sudah diperbaiki).</div>
                   </div>
                 </div>
               </div>
@@ -1930,12 +1940,12 @@ body {
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Error</div>
-                    <div class="test-field-value text-body">- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/567ba6f4-bd1a-40c0-b4e9-f9dde14d6910</div>
+                    <div class="test-field-value text-body">- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/97f1522b-2f16-431e-ae8b-1e7366fc46ea</div>
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Visualization and Result</div>
                     <div class="test-field-value text-body">
-                      <a href="https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/567ba6f4-bd1a-40c0-b4e9-f9dde14d6910" class="text-link">View Results</a>
+                      <a href="https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/97f1522b-2f16-431e-ae8b-1e7366fc46ea" class="text-link">View Results</a>
                     </div>
                   </div>
                   <div class="test-field">
@@ -1958,7 +1968,7 @@ body {
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Analysis / Findings</div>
-                    <div class="test-field-value text-body">DELETE endpoint mengembalikan HTTP 400 dengan "ID required" saat parameter `id` tidak ada.</div>
+                    <div class="test-field-value text-body">DELETE endpoint mengembalikan HTTP 400 dengan "ID required" saat `id` tidak ada.</div>
                   </div>
                 </div>
               </div>
@@ -2003,12 +2013,12 @@ body {
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Error</div>
-                    <div class="test-field-value text-body">- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/0ecfc6b5-e597-48e9-8baf-0ca7a9b1071c</div>
+                    <div class="test-field-value text-body">- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/daf8305f-4082-4454-be09-9b80e1cbb53a</div>
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Visualization and Result</div>
                     <div class="test-field-value text-body">
-                      <a href="https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/0ecfc6b5-e597-48e9-8baf-0ca7a9b1071c" class="text-link">View Results</a>
+                      <a href="https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/daf8305f-4082-4454-be09-9b80e1cbb53a" class="text-link">View Results</a>
                     </div>
                   </div>
                   <div class="test-field">
@@ -2076,12 +2086,12 @@ body {
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Error</div>
-                    <div class="test-field-value text-body">- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/d9bd414b-59ad-49e1-8059-5b1d4f163ba0</div>
+                    <div class="test-field-value text-body">- **Test Visualization and Result:** https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/3deb78bc-de9d-4962-a8c3-d2ece5fc4c33</div>
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Visualization and Result</div>
                     <div class="test-field-value text-body">
-                      <a href="https://www.testsprite.com/dashboard/mcp/tests/4690c960-50e7-4108-a935-421bf86e683c/d9bd414b-59ad-49e1-8059-5b1d4f163ba0" class="text-link">View Results</a>
+                      <a href="https://www.testsprite.com/dashboard/mcp/tests/4a42db14-720e-4369-87d2-e03aa5b71ebb/3deb78bc-de9d-4962-a8c3-d2ece5fc4c33" class="text-link">View Results</a>
                     </div>
                   </div>
                   <div class="test-field">
@@ -2116,7 +2126,7 @@ body {
           <div class="accordion-header" onclick="toggleAccordion(this)">
             <div class="requirement-content">
                                           <div class="requirement-title-row">
-              <h3 class="title-requirement">Requirement: Database Import/Restore UI</h3>
+              <h3 class="title-requirement">Requirement: Database Import/Restore UI (Frontend)</h3>
                 <div class="requirement-status-tag status-error">
               <svg width="18" height="18" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <circle cx="7.99961" cy="7.99998" r="6.4" fill="#C23539" fill-opacity="0.2"/>
@@ -2149,12 +2159,12 @@ body {
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Error</div>
-                    <div class="test-field-value text-body">- **Test Visualization and Result:** *(Frontend test — memerlukan browser automation)*</div>
+                    <div class="test-field-value text-body">- **Test Visualization and Result:** *(Awaiting Playwright execution)*</div>
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Visualization and Result</div>
                     <div class="test-field-value text-body">
-                      <a href="*(Frontend test — memerlukan browser automation)*" class="text-link">View Results</a>
+                      <a href="*(Awaiting Playwright execution)*" class="text-link">View Results</a>
                     </div>
                   </div>
                   <div class="test-field">
@@ -2180,7 +2190,7 @@ body {
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Analysis / Findings</div>
-                    <div class="test-field-value text-body">Test plan sudah dibuat: upload valid .db file → verifikasi konfirmasi sukses dan nama backup ditampilkan. Memerlukan eksekusi Playwright di production mode untuk hasil lengkap.</div>
+                    <div class="test-field-value text-body">Test plan sudah dibuat. Steps: navigate ke halaman restore → upload valid `.db` file → verify konfirmasi sukses dan nama backup muncul di UI.</div>
                   </div>
                 </div>
               </div>
@@ -2197,12 +2207,12 @@ body {
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Error</div>
-                    <div class="test-field-value text-body">- **Test Visualization and Result:** *(Frontend test — memerlukan browser automation)*</div>
+                    <div class="test-field-value text-body">- **Test Visualization and Result:** *(Awaiting Playwright execution)*</div>
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Test Visualization and Result</div>
                     <div class="test-field-value text-body">
-                      <a href="*(Frontend test — memerlukan browser automation)*" class="text-link">View Results</a>
+                      <a href="*(Awaiting Playwright execution)*" class="text-link">View Results</a>
                     </div>
                   </div>
                   <div class="test-field">
@@ -2228,7 +2238,7 @@ body {
                   </div>
                   <div class="test-field">
                     <div class="test-field-label text-body-medium">Analysis / Findings</div>
-                    <div class="test-field-value text-body">Test plan sudah dibuat: upload file non-.db → verifikasi error validasi tipe file muncul dan restore tidak dilanjutkan. Memerlukan eksekusi Playwright di production mode untuk hasil lengkap.</div>
+                    <div class="test-field-value text-body">Test plan sudah dibuat. Steps: upload file non-`.db` → verify error validasi tipe file muncul dan restore tidak dilanjutkan.</div>
                   </div>
                 </div>
               </div>

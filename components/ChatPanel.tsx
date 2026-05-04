@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { KPISummary } from '../lib/types';
-import { Send, Bot, User, Loader2, Database, ChevronDown } from 'lucide-react';
+import { Send, Bot, User, Loader2, Database } from 'lucide-react';
 
 interface Message {
   role: 'user' | 'assistant';
