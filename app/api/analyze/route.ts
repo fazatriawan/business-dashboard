@@ -1,6 +1,17 @@
+import { createHash } from 'crypto';
 import { NextRequest, NextResponse } from 'next/server';
 import { SYSTEM_PROMPT, buildUserPrompt } from '../../../lib/gemini-prompt';
-import { createProviders, analyzeWithFallback } from '../../../lib/ai-providers';
+import { createProviders, analyzeWithRace } from '../../../lib/ai-providers';
+import { prisma } from '../../../lib/prisma';
+
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+function cacheKey(bulan: string, summary: unknown): string {
+  return createHash('sha256')
+    .update(JSON.stringify({ bulan, summary }))
+    .digest('hex')
+    .slice(0, 24);
+}
 
 export async function POST(req: NextRequest) {
   const providers = createProviders();
@@ -27,6 +38,17 @@ export async function POST(req: NextRequest) {
       errorReport,
     } = await req.json();
 
+    // ── Cache lookup ──────────────────────────────────────────────────────────
+    const key = cacheKey(bulan, summary);
+    const now = new Date();
+
+    const cached = await prisma.aIAnalysisCache.findUnique({ where: { cacheKey: key } });
+    if (cached && cached.expiresAt > now) {
+      const parsed = JSON.parse(cached.result) as Record<string, unknown>;
+      return NextResponse.json({ quick: parsed, analysis: null, provider: cached.provider, cached: true });
+    }
+
+    // ── Build prompt & call AI (parallel race) ────────────────────────────────
     const prompt = buildUserPrompt({
       bulan,
       dataAds:  JSON.stringify({ kpi: summary, harian: rawData }, null, 2).slice(0, 5000),
@@ -40,12 +62,12 @@ export async function POST(req: NextRequest) {
       errorReport: errorReport || 'Tidak ada error formula terdeteksi.',
     });
 
-    const { text, provider } = await analyzeWithFallback(providers, {
+    const { text, provider } = await analyzeWithRace(providers, {
       prompt,
       systemInstruction: SYSTEM_PROMPT,
     });
 
-    // Strip markdown fence if AI wraps in ```json
+    // ── Parse response ────────────────────────────────────────────────────────
     const clean = text.replace(/^```json\s*/i, '').replace(/\s*```$/i, '').trim();
 
     let parsed: Record<string, unknown>;
@@ -54,6 +76,14 @@ export async function POST(req: NextRequest) {
     } catch {
       return NextResponse.json({ analysis: text, quick: null, provider });
     }
+
+    // ── Store in cache ────────────────────────────────────────────────────────
+    const expiresAt = new Date(now.getTime() + CACHE_TTL_MS);
+    await prisma.aIAnalysisCache.upsert({
+      where: { cacheKey: key },
+      create: { cacheKey: key, bulan, result: JSON.stringify(parsed), provider, expiresAt },
+      update: { result: JSON.stringify(parsed), provider, expiresAt },
+    });
 
     return NextResponse.json({ quick: parsed, analysis: null, provider });
   } catch (err) {

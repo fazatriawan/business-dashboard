@@ -125,6 +125,20 @@ model ReturData {
   updatedAt DateTime @updatedAt
 }
 
+// ── AI Analysis Cache ────────────────────────────────────────────────────────
+// Caches AI analysis results to avoid redundant expensive calls
+model AIAnalysisCache {
+  id        String   @id @default(uuid())
+  cacheKey  String   @unique
+  bulan     String
+  result    String   // JSON string of parsed AI response
+  provider  String   // which provider generated it
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  @@index([bulan])
+}
+
 // ── Daily Metrics (for time-series) ─────────────────────────────────────────
 // Stores daily aggregated KPI for fast chart rendering
 model DailyMetric {

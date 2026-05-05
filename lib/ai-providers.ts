@@ -179,7 +179,39 @@ function parseAIResponse(text: string): Record<string, unknown> {
   }
 }
 
-// ── Fallback Chain ────────────────────────────────────────────────────────────
+// ── Parallel Race (first success wins) ───────────────────────────────────────
+
+export async function analyzeWithRace(
+  providers: AIProvider[],
+  params: AIAnalyzeParams,
+): Promise<{ text: string; provider: string }> {
+  if (providers.length === 0) throw new Error('ALL_PROVIDERS_FAILED:\nNo providers configured');
+  if (providers.length === 1) return analyzeWithFallback(providers, params);
+
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const errors: string[] = [];
+    let remaining = providers.length;
+
+    for (const provider of providers) {
+      provider.analyze(params).then(text => {
+        if (!settled) {
+          settled = true;
+          resolve({ text, provider: provider.name });
+        }
+      }).catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err);
+        errors.push(`${provider.name}: ${msg}`);
+        remaining--;
+        if (remaining === 0 && !settled) {
+          reject(new Error(`ALL_PROVIDERS_FAILED:\n${errors.join('\n')}`));
+        }
+      });
+    }
+  });
+}
+
+// ── Sequential Fallback ───────────────────────────────────────────────────────
 
 export async function analyzeWithFallback(
   providers: AIProvider[],
@@ -194,7 +226,6 @@ export async function analyzeWithFallback(
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       errors.push(`${provider.name}: ${msg}`);
-      // Always try next provider regardless of error type
     }
   }
 
