@@ -470,6 +470,40 @@ export default function Dashboard() {
       }
 
       setLoadingStep('Menyimpan ke database…');
+
+      // ── Auto-sync MonthlySales ────────────────────────────────────────────
+      // Convert detectedBulan (e.g. "April 2026") to YYYY-MM format
+      try {
+        const monthNames = ['januari','februari','maret','april','mei','juni','juli','agustus','september','oktober','november','desember'];
+        const englishMonths = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+        const bulanLower = detectedBulan.toLowerCase();
+        const monthIdx = monthNames.findIndex(m => bulanLower.includes(m)) !== -1
+          ? monthNames.findIndex(m => bulanLower.includes(m))
+          : englishMonths.findIndex(m => bulanLower.includes(m));
+        const yearMatch = detectedBulan.match(/(\d{4})/);
+        if (monthIdx >= 0 && yearMatch) {
+          const monthYear = `${yearMatch[1]}-${String(monthIdx + 1).padStart(2, '0')}`;
+          const kpiSnap = calcKPI(parsed);
+          const totalAdSpendSnap = rawSpendLocal.length > 0
+            ? parseTotalBiayaIklan(rawSpendLocal).reduce((s, r) => s + r.budgetAktual, 0)
+            : kpiSnap.totalBudget;
+          await fetch('/api/db/monthly-sales', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              mode: 'sync',
+              monthYear,
+              totalRevenue: kpiSnap.totalOmset,
+              totalOrders: kpiSnap.totalClosing,
+              totalAdSpend: totalAdSpendSnap,
+              sourceUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}`,
+            }),
+          });
+        }
+      } catch {
+        // Ignore sync errors — non-critical
+      }
+
       // Save bookmark & cache to SQLite DB
       try {
         const bmRes = await fetch('/api/db/bookmarks', {
