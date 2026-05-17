@@ -7,12 +7,14 @@
   "executionArgs": {
     "projectName": "business-dashboard",
     "projectPath": "C:\\projects\\business-dashboard",
-    "testIds": [],
-    "additionalInstruction": "Production server running on port 3001. Run all tests including frontend tests from testsprite_frontend_test_plan.json. Frontend tests involve the Database Import/Restore UI (ExportDB component).",
+    "testIds": [
+      "2e197c33-265e-4ae1-bbf1-fd67525f8a5f"
+    ],
+    "additionalInstruction": "",
     "serverMode": "production",
     "envs": {
       "API_KEY": "sk-user-4J9QlvtoUNyk5pIFb3QLHBRws7tw6cZKpcBvMX_HiENf6Q1AzSWPDZBcR28r0AT3AamhX2knPu5rzqdySENvSJ1Z4yPaDism6EctVquECiXW_HJ4RvS5KOZiK2YH6-Lf5a8"
     }
   },
-  "serverPort": 63834
+  "serverPort": 55213
 }

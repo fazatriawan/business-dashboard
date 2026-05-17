@@ -13,13 +13,14 @@ import {
   Legend,
   Filler,
 } from 'chart.js';
-import { TrendingUp } from 'lucide-react';
-import { AdsRow } from '../lib/types';
+import { TrendingUp, Users } from 'lucide-react';
+import { AdsRow, CSDailyRow } from '../lib/types';
 
 Chart.register(LineElement, PointElement, LineController, CategoryScale, LinearScale, Title, Tooltip, Legend, Filler);
 
 interface TrendChartProps {
   ads: AdsRow[];
+  csDaily?: CSDailyRow[];
 }
 
 function shortDate(d: string) {
@@ -28,29 +29,52 @@ function shortDate(d: string) {
   return d.slice(-5);
 }
 
-export default function TrendChart({ ads }: TrendChartProps) {
-  const budgetRef = useRef<HTMLCanvasElement>(null);
-  const omsetRef = useRef<HTMLCanvasElement>(null);
-  const leadClosingRef = useRef<HTMLCanvasElement>(null);
-  const charts = useRef<Chart[]>([]);
+function rupiahShort(v: number | string) {
+  const n = Number(v);
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(0)}jt`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}rb`;
+  return String(n);
+}
+
+export default function TrendChart({ ads, csDaily = [] }: TrendChartProps) {
+  const budgetRef     = useRef<HTMLCanvasElement>(null);
+  const roasRef       = useRef<HTMLCanvasElement>(null);
+  const leadRef       = useRef<HTMLCanvasElement>(null);
+  const csRef         = useRef<HTMLCanvasElement>(null);
+  const charts        = useRef<Chart[]>([]);
 
   useEffect(() => {
     charts.current.forEach(c => c.destroy());
     charts.current = [];
 
-    const labels = ads.map(r => shortDate(r.date));
-    const budget = ads.map(r => r.total.totalBudget);
-    const omset = ads.map(r => r.total.omset);
-    const lead = ads.map(r => r.total.totalLead);
+    const labels  = ads.map(r => shortDate(r.date));
+    const budget  = ads.map(r => r.total.totalBudget);
+    const omset   = ads.map(r => r.total.omset);
+    const roas    = ads.map(r => r.total.totalBudget > 0 ? +(r.total.omset / r.total.totalBudget).toFixed(2) : null);
+    const lead    = ads.map(r => r.total.totalLead);
     const closing = ads.map(r => r.total.totalClosing);
 
     const baseOpts = {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { position: 'top' as const, labels: { usePointStyle: true, boxWidth: 8 } }, tooltip: { mode: 'index' as const, intersect: false, backgroundColor: 'rgba(15,23,42,0.9)', padding: 12, cornerRadius: 8 } },
-      scales: { x: { grid: { display: false }, ticks: { maxRotation: 45, font: { size: 10 } } }, y: { grid: { color: 'rgba(148,163,184,0.1)' } } },
+      plugins: {
+        legend: { position: 'top' as const, labels: { usePointStyle: true, boxWidth: 8 } },
+        tooltip: {
+          mode: 'index' as const,
+          intersect: false,
+          backgroundColor: 'rgba(15,23,42,0.9)',
+          padding: 12,
+          cornerRadius: 8,
+          filter: (item: { formattedValue: string }) => item.formattedValue !== 'null',
+        },
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxRotation: 45, font: { size: 10 } } },
+        y: { grid: { color: 'rgba(148,163,184,0.1)' } },
+      },
     };
 
+    // ── Chart 1: Budget vs Omset ──────────────────────────────────────────────
     if (budgetRef.current) {
       charts.current.push(new Chart(budgetRef.current, {
         type: 'line',
@@ -87,25 +111,15 @@ export default function TrendChart({ ads }: TrendChartProps) {
           },
           scales: {
             ...baseOpts.scales,
-            y: {
-              ...baseOpts.scales.y,
-              ticks: {
-                callback: (v: number | string) => {
-                  const n = Number(v);
-                  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(0)}jt`;
-                  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}rb`;
-                  return String(n);
-                },
-              },
-            },
+            y: { ...baseOpts.scales.y, ticks: { callback: (v: number | string) => rupiahShort(v) } },
           },
         },
       }));
     }
 
-    if (omsetRef.current) {
-      const roas = ads.map(r => r.total.totalBudget > 0 ? r.total.omset / r.total.totalBudget : 0);
-      charts.current.push(new Chart(omsetRef.current, {
+    // ── Chart 2: ROAS ─────────────────────────────────────────────────────────
+    if (roasRef.current) {
+      charts.current.push(new Chart(roasRef.current, {
         type: 'line',
         data: {
           labels,
@@ -119,6 +133,7 @@ export default function TrendChart({ ads }: TrendChartProps) {
               tension: 0.4,
               pointRadius: 3,
               pointHoverRadius: 5,
+              spanGaps: false,
             },
           ],
         },
@@ -136,8 +151,9 @@ export default function TrendChart({ ads }: TrendChartProps) {
       }));
     }
 
-    if (leadClosingRef.current) {
-      charts.current.push(new Chart(leadClosingRef.current, {
+    // ── Chart 3: Lead & Closing (Ads) ─────────────────────────────────────────
+    if (leadRef.current) {
+      charts.current.push(new Chart(leadRef.current, {
         type: 'line',
         data: {
           labels,
@@ -174,25 +190,97 @@ export default function TrendChart({ ads }: TrendChartProps) {
       }));
     }
 
+    // ── Chart 4: CS Lead & Closing (csDaily) ─────────────────────────────────
+    if (csRef.current && csDaily.length > 0) {
+      const csMap = new Map<string, { lead: number; closing: number }>();
+      for (const row of csDaily) {
+        const prev = csMap.get(row.date) ?? { lead: 0, closing: 0 };
+        csMap.set(row.date, {
+          lead: prev.lead + row.whatsapp,
+          closing: prev.closing + row.closing,
+        });
+      }
+
+      // Align with ads dates so x-axis matches other charts; null = gap
+      const csDates  = ads.length > 0 ? ads.map(r => r.date) : Array.from(csMap.keys()).sort();
+      const csLabels = csDates.map(d => shortDate(d));
+      const csLeads  = csDates.map(d => csMap.has(d) ? (csMap.get(d)!.lead   || null) : null);
+      const csClose  = csDates.map(d => csMap.has(d) ? (csMap.get(d)!.closing || null) : null);
+
+      charts.current.push(new Chart(csRef.current, {
+        type: 'line',
+        data: {
+          labels: csLabels,
+          datasets: [
+            {
+              label: 'Lead CS',
+              data: csLeads,
+              borderColor: '#22d3ee',
+              backgroundColor: 'rgba(34,211,238,0.06)',
+              fill: false,
+              tension: 0.4,
+              pointRadius: 3,
+              pointHoverRadius: 5,
+              spanGaps: false,
+            },
+            {
+              label: 'Closing CS',
+              data: csClose,
+              borderColor: '#a78bfa',
+              backgroundColor: 'rgba(167,139,250,0.06)',
+              fill: false,
+              tension: 0.4,
+              pointRadius: 3,
+              pointHoverRadius: 5,
+              spanGaps: false,
+            },
+          ],
+        },
+        options: {
+          ...baseOpts,
+          plugins: {
+            ...baseOpts.plugins,
+            title: { display: true, text: 'CS Lead & Closing Harian', font: { size: 13, weight: 'bold' }, color: '#334155', padding: { bottom: 16 } },
+          },
+        },
+      }));
+    }
+
     return () => { charts.current.forEach(c => c.destroy()); };
-  }, [ads]);
+  }, [ads, csDaily]);
+
+  const hasCS = csDaily.length > 0;
 
   return (
     <div>
-      <h2 className="text-base font-bold text-slate-800 mb-4 flex items-center gap-2">
+      <h2 className="text-base font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2">
         <TrendingUp className="w-5 h-5 text-indigo-500" />
         Tren Harian
+        {hasCS && (
+          <span className="ml-2 inline-flex items-center gap-1 text-xs font-medium bg-cyan-50 text-cyan-700 border border-cyan-200/60 px-2 py-0.5 rounded-full">
+            <Users className="w-3 h-3" />
+            CS
+          </span>
+        )}
       </h2>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm" style={{ height: 300 }}>
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-5 shadow-sm" style={{ height: 300 }}>
           <canvas ref={budgetRef} />
         </div>
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm" style={{ height: 300 }}>
-          <canvas ref={omsetRef} />
+        <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-5 shadow-sm" style={{ height: 300 }}>
+          <canvas ref={roasRef} />
         </div>
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm lg:col-span-2" style={{ height: 300 }}>
-          <canvas ref={leadClosingRef} />
+        <div
+          className={`bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-5 shadow-sm ${!hasCS ? 'lg:col-span-2' : ''}`}
+          style={{ height: 300 }}
+        >
+          <canvas ref={leadRef} />
         </div>
+        {hasCS && (
+          <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl p-5 shadow-sm" style={{ height: 300 }}>
+            <canvas ref={csRef} />
+          </div>
+        )}
       </div>
     </div>
   );

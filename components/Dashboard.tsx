@@ -21,15 +21,16 @@ import ReturManager from './ReturManager';
 import GoogleSheetsWriter from './GoogleSheetsWriter';
 import AlertPanel from './AlertPanel';
 import SyncSettings from './SyncSettings';
+import ProductTable from './ProductTable';
 import { generateAlerts, ThresholdConfig } from '../lib/alerts';
 import { fetchSheetByName } from '../lib/fetchSheet';
-import { parseAdsData, calcKPI } from '../lib/parseAds';
+import { parseAdsData, calcKPI, calcProductSummary } from '../lib/parseAds';
 import { parseCSIndividual } from '../lib/parseCSIndividual';
-import { parseADVIndividual } from '../lib/parseADVIndividual';
+import { parseMultiAgentCS, isMultiAgentFormat } from '../lib/parseMultiAgentSheet';
 import { parseTotalBiayaIklan } from '../lib/parseTotalBiayaIklan';
 import { parseTotalAllCS } from '../lib/parseTotalAllCS';
 import {
-  AdsRow, KPISummary, CSRow, ADVRow,
+  AdsRow, KPISummary, CSRow, ADVRow, ProductSummary,
   KPIBenchmark, ADVSpendRow, CSDailyRow, DashboardCSRow, GrowthRow,
 } from '../lib/types';
 
@@ -57,12 +58,13 @@ import {
   Bot,
 } from 'lucide-react';
 
-type TabKey = 'morning' | 'kpi' | 'tren' | 'cs' | 'adv' | 'tabel' | 'laporan' | 'ai' | 'chat' | 'drill' | 'rekap' | 'backup' | 'meeting' | 'retur' | 'gsheet' | 'settings';
+type TabKey = 'morning' | 'kpi' | 'tren' | 'produk' | 'cs' | 'adv' | 'tabel' | 'laporan' | 'ai' | 'chat' | 'drill' | 'rekap' | 'backup' | 'meeting' | 'retur' | 'gsheet' | 'settings';
 
 const TABS: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: 'morning', label: 'Morning',   icon: <Sunrise className="w-4 h-4" /> },
   { key: 'kpi',     label: 'KPI',       icon: <Activity className="w-4 h-4" /> },
   { key: 'tren',    label: 'Tren',      icon: <TrendingUp className="w-4 h-4" /> },
+  { key: 'produk',  label: 'Produk',    icon: <BarChart3 className="w-4 h-4" /> },
   { key: 'cs',      label: 'CS',        icon: <Users className="w-4 h-4" /> },
   { key: 'adv',     label: 'ADV',       icon: <Megaphone className="w-4 h-4" /> },
   { key: 'tabel',   label: 'Harian',    icon: <Table2 className="w-4 h-4" /> },
@@ -122,6 +124,7 @@ export default function Dashboard() {
   const [rawADV, setRawADV]     = useState<Record<string, string>[]>([]);
   const [csData, setCsData]     = useState<CSRow[]>([]);
   const [advData, setAdvData]   = useState<ADVRow[]>([]);
+  const [productSummary, setProductSummary] = useState<ProductSummary[]>([]);
 
   // New data (raw / unfiltered)
   const [kpiBenchmarks]     = useState<KPIBenchmark[]>([]);
@@ -131,6 +134,8 @@ export default function Dashboard() {
   const [growth]                   = useState<GrowthRow[]>([]);
   const [, setRawTotalBiaya]     = useState<Record<string, string>[]>([]);
   const [, setRawTotalAllCS]     = useState<Record<string, string>[]>([]);
+
+  const [loadingStep, setLoadingStep] = useState('');
 
   const [tab, setTab]           = useState<TabKey>('morning');
   const [loaded, setLoaded]     = useState(false);
@@ -299,62 +304,80 @@ export default function Dashboard() {
 
   const handleLoad = useCallback(async (config: LoadConfig) => {
     setLoading(true);
+    setLoadingStep('Mempersiapkan…');
     setError('');
     setBulan(config.bulan);
     setDateRange(null);
     setLastConfig(config);
 
     try {
-      const { spreadsheetId, sheetMap } = config;
+      const { spreadsheetId, sheetMap, selectedSheets } = config;
 
-      // Load ads (required)
-      const raw = await fetchSheetByName(spreadsheetId, sheetMap.ads);
+      // ── Main sheet (data utama / ads) ─────────────────────────────────────
+      const mainSheetName = sheetMap.ads;
+      if (!mainSheetName) throw new Error('Tidak ada sheet "Main" yang dipilih.');
+
+      setLoadingStep(`Memuat data utama: ${mainSheetName}…`);
+      const raw = await fetchSheetByName(spreadsheetId, mainSheetName);
       setRawAds(raw);
       const parsed = parseAdsData(raw);
       setAds(parsed);
       setKpi(calcKPI(parsed));
+      setProductSummary(calcProductSummary(parsed));
 
-      // Local vars to capture raw data for DB caching
+      // Auto-detect periode dari tanggal pertama di data (e.g. "Rabu, 01 April 2026" → "April 2026")
+      const firstDate = parsed.find(r => r.date)?.date || '';
+      const dateMatch = firstDate.match(/([A-Za-z]{3,})\s+(\d{4})/);
+      const detectedBulan = dateMatch ? `${dateMatch[1]} ${dateMatch[2]}` : (config.bulan || '');
+      setBulan(detectedBulan);
+
       let rawSpendLocal: Record<string, string>[] = [];
 
-      const loadOpt = async <T,>(
-        type: keyof typeof sheetMap,
-        parser: (r: Record<string, string>[]) => T,
-        setRaw: (r: Record<string, string>[]) => void,
-        setData: (d: T) => void,
-        saveRaw?: (r: Record<string, string>[]) => void,
-      ) => {
-        const name = sheetMap[type];
-        if (!name) { setRaw([]); setData([] as T); return; }
+      // ── Biaya iklan (dari ADV sheets yang namanya mengandung "biaya") ──────
+      if (sheetMap.totalBiayaIklan) {
         try {
-          const r = await fetchSheetByName(spreadsheetId, name);
-          setRaw(r);
-          if (saveRaw) saveRaw(r);
-          setData(parser(r));
-        } catch {
-          setRaw([]);
-          setData([] as T);
-        }
-      };
+          const r = await fetchSheetByName(spreadsheetId, sheetMap.totalBiayaIklan);
+          setRawTotalBiaya(r);
+          rawSpendLocal = r;
+          setAdvSpend(parseTotalBiayaIklan(r));
+        } catch { setAdvSpend([]); }
+      }
 
-      await loadOpt('totalBiayaIklan', parseTotalBiayaIklan, setRawTotalBiaya, setAdvSpend, r => { rawSpendLocal = r; });
-      await loadOpt('totalAllCS',    parseTotalAllCS,    setRawTotalAllCS, setCsDaily);
+      // ── CS harian (totalAllCS) ────────────────────────────────────────────
+      if (sheetMap.totalAllCS) {
+        try {
+          const r = await fetchSheetByName(spreadsheetId, sheetMap.totalAllCS);
+          setRawTotalAllCS(r);
+          setCsDaily(parseTotalAllCS(r));
+        } catch { setCsDaily([]); }
+      }
 
-      // Load multiple CS sheets if discovered
-      const extraCS = config.extraSheets?.infoCS || [];
-      if (sheetMap.infoCS || extraCS.length > 0) {
-        const csNames = [sheetMap.infoCS, ...extraCS].filter(Boolean) as string[];
+      // ── CS sheets — gunakan selectedSheets jika ada, fallback ke sheetMap ─
+      const csSheetNames = selectedSheets
+        ? selectedSheets.filter(s => s.category === 'cs').map(s => s.name)
+        : [sheetMap.infoCS, ...(config.extraSheets?.infoCS || [])].filter(Boolean) as string[];
+
+      if (csSheetNames.length > 0) {
         const allCSRows: CSRow[] = [];
         const allCSRaw: Record<string, string>[] = [];
-        for (const name of csNames) {
+        for (const name of csSheetNames) {
+          const display = selectedSheets?.find(s => s.name === name)?.displayName || name;
+          setLoadingStep(`Memuat CS: ${display}…`);
           try {
             const r = await fetchSheetByName(spreadsheetId, name);
             allCSRaw.push(...r);
-            const parsed = parseCSIndividual(r, name);
-            if (parsed.cs && (parsed.closing > 0 || parsed.totalLead > 0 || parsed.botol > 0)) {
-              allCSRows.push(parsed);
+            // Pilih parser: multi-agent (column groups) atau single-agent
+            if (isMultiAgentFormat(r)) {
+              const rows = parseMultiAgentCS(r);
+              console.log(`[Dashboard] multi-agent CS "${display}" → ${rows.length} agents`);
+              allCSRows.push(...rows);
+            } else {
+              const row = parseCSIndividual(r, name);
+              if (row.cs && (row.closing > 0 || row.totalLead > 0 || row.botol > 0)) {
+                allCSRows.push(row);
+              }
             }
-          } catch { /* ignore */ }
+          } catch (e) { console.error(`[Dashboard] CS sheet "${display}" error:`, e); }
         }
         setRawCS(allCSRaw);
         setCsData(allCSRows);
@@ -363,21 +386,81 @@ export default function Dashboard() {
         setCsData([]);
       }
 
-      // Load multiple ADV sheets if discovered
-      const extraADV = config.extraSheets?.infoADV || [];
-      if (sheetMap.infoADV || extraADV.length > 0) {
-        const advNames = [sheetMap.infoADV, ...extraADV].filter(Boolean) as string[];
+      // ── ADV sheets — pakai parseAdsData untuk deteksi multi-produk ──────────
+      const advSheetNames = selectedSheets
+        ? selectedSheets.filter(s => s.category === 'adv' && s.name !== sheetMap.totalBiayaIklan).map(s => s.name)
+        : [sheetMap.infoADV, ...(config.extraSheets?.infoADV || [])].filter(Boolean) as string[];
+
+      if (advSheetNames.length > 0) {
         const allADVRows: ADVRow[] = [];
         const allADVRaw: Record<string, string>[] = [];
-        for (const name of advNames) {
+        for (const name of advSheetNames) {
+          const display = selectedSheets?.find(s => s.name === name)?.displayName || name;
+          setLoadingStep(`Memuat ADV: ${display}…`);
+          // Extract ADV name from sheet name like "1. ADV Faza" → "ADV Faza"
+          const advNameMatch = display.match(/^\d+\.\s*(.+)/);
+          const advName = advNameMatch ? advNameMatch[1].trim() : display;
           try {
             const r = await fetchSheetByName(spreadsheetId, name);
             allADVRaw.push(...r);
-            const parsed = parseADVIndividual(r, name);
-            if (parsed.adv && (parsed.closing > 0 || parsed.totalLead > 0 || parsed.botol > 0)) {
-              allADVRows.push(parsed);
+            // Parse with same multi-product parser — ADV sheets share the
+            // "[PRODUCT] Budget Iklan" column-group format
+            const parsedAdv = parseAdsData(r);
+            const advProducts = calcProductSummary(parsedAdv);
+            if (advProducts.length > 0) {
+              // Each product group becomes one ADVRow
+              advProducts.forEach((p, idx) => {
+                allADVRows.push({
+                  no: allADVRows.length + idx + 1,
+                  adv: advName,
+                  produk: p.name.toUpperCase(),
+                  cs: '',
+                  realtimeLead: p.totalLead,
+                  closing: p.totalClosing,
+                  botol: p.totalBotol,
+                  totalBotolByProduct: p.totalBotol,
+                  cr: p.cr,
+                  caq: 0,
+                  ratio: 0,
+                  avgRatio: 0,
+                  totalLead: p.totalLead,
+                  totalClosing: p.totalClosing,
+                  totalBotol: p.totalBotol,
+                  avgCR: p.cr,
+                  totalRatio: 0,
+                  jumlahRetur: 0,
+                  returRate: 0,
+                });
+              });
+            } else {
+              // Fallback: single-row summary from TOTAL columns
+              const kpiAdv = calcKPI(parsedAdv);
+              if (kpiAdv.totalLead > 0 || kpiAdv.totalClosing > 0) {
+                allADVRows.push({
+                  no: allADVRows.length + 1,
+                  adv: advName,
+                  produk: '',
+                  cs: '',
+                  realtimeLead: kpiAdv.totalLead,
+                  closing: kpiAdv.totalClosing,
+                  botol: 0,
+                  totalBotolByProduct: 0,
+                  cr: kpiAdv.avgCR,
+                  caq: kpiAdv.avgCAQ,
+                  ratio: 0,
+                  avgRatio: 0,
+                  totalLead: kpiAdv.totalLead,
+                  totalClosing: kpiAdv.totalClosing,
+                  totalBotol: 0,
+                  avgCR: kpiAdv.avgCR,
+                  totalRatio: 0,
+                  jumlahRetur: 0,
+                  returRate: 0,
+                });
+              }
             }
-          } catch { /* ignore */ }
+            console.log(`[Dashboard] ADV "${advName}" → ${advProducts.length} produk`);
+          } catch (e) { console.error(`[Dashboard] ADV sheet "${display}" error:`, e); }
         }
         setRawADV(allADVRaw);
         setAdvData(allADVRows);
@@ -386,13 +469,14 @@ export default function Dashboard() {
         setAdvData([]);
       }
 
+      setLoadingStep('Menyimpan ke database…');
       // Save bookmark & cache to SQLite DB
       try {
         const bmRes = await fetch('/api/db/bookmarks', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            label: config.bulan,
+            label: detectedBulan || config.bulan,
             spreadsheetId,
             sheetMap: config.sheetMap,
             extraSheets: config.extraSheets,
@@ -425,12 +509,14 @@ export default function Dashboard() {
         // Ignore DB errors, continue with UI
       }
 
+      setLoadingStep('');
       setLoaded(true);
       setTab('morning');
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Gagal memuat data');
     } finally {
       setLoading(false);
+      setLoadingStep('');
     }
   }, []);
 
@@ -449,8 +535,9 @@ export default function Dashboard() {
 
   const visibleTabs = TABS.filter(t => {
     if (t.key === 'morning') return true;
-    if (t.key === 'cs')      return csDaily.length > 0;
-    if (t.key === 'adv')     return advSpend.length > 0;
+    if (t.key === 'produk')  return productSummary.length > 0;
+    if (t.key === 'cs')      return csDaily.length > 0 || csData.length > 0;
+    if (t.key === 'adv')     return advData.length > 0 || advSpend.length > 0;
     if (t.key === 'laporan') return advSpend.length > 0;
     if (t.key === 'drill')   return rawAds.length > 0;
     return true;
@@ -575,6 +662,16 @@ export default function Dashboard() {
           </div>
         )}
 
+        {loading && loadingStep && (
+          <div className="flex items-center gap-3 bg-indigo-50/80 dark:bg-indigo-950/30 border border-indigo-200/60 dark:border-indigo-800/40 rounded-2xl px-5 py-3.5 animate-fade-in">
+            <div className="w-4 h-4 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-indigo-700 dark:text-indigo-300">Mengambil data dari Google Sheets…</p>
+              <p className="text-xs text-indigo-500 dark:text-indigo-400 mt-0.5">{loadingStep}</p>
+            </div>
+          </div>
+        )}
+
         {loadingCache && (
           <div className="flex items-center gap-3 text-sm text-indigo-600 font-medium animate-fade-in">
             <div className="w-4 h-4 border-2 border-indigo-200 border-t-indigo-600 rounded-full animate-spin" />
@@ -628,7 +725,8 @@ export default function Dashboard() {
                 />
               )}
               {tab === 'kpi'     && <KPICards kpi={filteredKPI} bulan={bulan} />}
-              {tab === 'tren'    && <TrendChart ads={filteredAds} />}
+              {tab === 'tren'    && <TrendChart ads={filteredAds} csDaily={filteredCSDaily} />}
+              {tab === 'produk'  && <ProductTable products={productSummary} bulan={bulan} />}
               {tab === 'cs'      && <CSTable rows={csData} bulan={bulan} />}
               {tab === 'adv'     && <ADVTable rows={advData} bulan={bulan} />}
               {tab === 'tabel'   && <DataTable ads={filteredAds} />}
@@ -645,20 +743,40 @@ export default function Dashboard() {
                 />
               )}
               {tab === 'ai'      && (
-                <AIAnalysis
-                  kpi={filteredKPI}
-                  rawAds={rawAds}
-                  rawCS={rawCS}
-                  rawADV={rawADV}
-                  csData={csData}
-                  advData={advData}
-                  advSpend={filteredADVSpend}
-                  kpiBenchmarks={kpiBenchmarks}
-                  csDaily={filteredCSDaily}
-                  dashboardCS={dashboardCS}
-                  growth={filteredGrowth}
-                  bulan={bulan}
-                />
+                <>
+                  <a
+                    href="http://localhost:8050"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mb-4 flex items-center gap-4 bg-gradient-to-r from-violet-50 to-indigo-50 dark:from-violet-950/40 dark:to-indigo-950/40 border border-violet-200/60 dark:border-violet-700/40 rounded-2xl p-4 hover:border-violet-400/60 transition-colors group"
+                  >
+                    <div className="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-900/50 flex items-center justify-center shrink-0 group-hover:bg-violet-200 dark:group-hover:bg-violet-800/50 transition-colors">
+                      <ExternalLink className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">Analisis Formula Mendalam</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Deteksi circular reference, formula error, perbaikan otomatis via AI — Spreadsheet Analyzer</p>
+                    </div>
+                    <span className="shrink-0 inline-flex items-center gap-1.5 bg-violet-600 text-white text-xs font-semibold px-3 py-2 rounded-xl group-hover:bg-violet-700 transition-colors">
+                      Buka
+                      <ExternalLink className="w-3 h-3" />
+                    </span>
+                  </a>
+                  <AIAnalysis
+                    kpi={filteredKPI}
+                    rawAds={rawAds}
+                    rawCS={rawCS}
+                    rawADV={rawADV}
+                    csData={csData}
+                    advData={advData}
+                    advSpend={filteredADVSpend}
+                    kpiBenchmarks={kpiBenchmarks}
+                    csDaily={filteredCSDaily}
+                    dashboardCS={dashboardCS}
+                    growth={filteredGrowth}
+                    bulan={bulan}
+                  />
+                </>
               )}
               {tab === 'chat'    && (
                 <ChatPanel kpi={filteredKPI} bulan={bulan} />

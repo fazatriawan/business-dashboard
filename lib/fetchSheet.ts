@@ -37,12 +37,16 @@ export async function fetchSheetCSV(url: string): Promise<Record<string, string>
   return result.data;
 }
 
-// Fetch a specific sheet by name using the gviz API
+// Fetch a specific sheet by name (or gid:type:gid) using the gviz API
 export async function fetchSheetByName(
   spreadsheetId: string,
   sheetName: string,
 ): Promise<Record<string, string>[]> {
-  const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+  // Handle synthetic gid:type:gid format from sheet-names API
+  const gidMatch = sheetName.match(/^gid:[^:]+:(\d+)$/);
+  const url = gidMatch
+    ? `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&gid=${gidMatch[1]}`
+    : `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
 
   const response = await fetch(`/api/sheet?url=${encodeURIComponent(url)}`);
   if (!response.ok) {
@@ -66,7 +70,10 @@ export async function fetchSheetByNameRaw(
   spreadsheetId: string,
   sheetName: string,
 ): Promise<string[][]> {
-  const url = `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+  const gidMatch = sheetName.match(/^gid:[^:]+:(\d+)$/);
+  const url = gidMatch
+    ? `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&gid=${gidMatch[1]}`
+    : `https://docs.google.com/spreadsheets/d/${spreadsheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
 
   const response = await fetch(`/api/sheet?url=${encodeURIComponent(url)}`);
   if (!response.ok) {

@@ -151,6 +151,18 @@ export interface GrowthRow {
   omset: number;
 }
 
+// ── Product Summary (aggregated from Total Closing All Produk) ───────────────
+
+export interface ProductSummary {
+  name: string;
+  totalBudget: number;
+  totalLead: number;
+  totalClosing: number;
+  totalBotol: number;
+  totalOmset: number;
+  cr: number;
+}
+
 // ── Report / AI Analysis enriched types ──────────────────────────────────────
 
 export interface TindakanItem {

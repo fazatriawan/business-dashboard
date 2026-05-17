@@ -18,6 +18,10 @@ function pct(v: string | undefined): number {
 
 // Extract CS name from sheet name like "1. CS Nabila" or "2. CS Vadia"
 function extractCSName(sheetName: string): string {
+  if (sheetName.startsWith('gid:')) {
+    const gid = sheetName.split(':').pop();
+    return `CS #${gid}`;
+  }
   const match = sheetName.match(/cs\s+(.+)$/i);
   return match ? match[1].trim() : sheetName;
 }
@@ -64,7 +68,30 @@ export function parseCSIndividual(raw: Record<string, string>[], sheetName: stri
 
   const produk = extractProductName(raw);
   const headerIdx = findHeaderRow(raw);
-  const headers = Object.keys(raw[headerIdx]);
+  const papaHeaders = Object.keys(raw[headerIdx] || {});
+
+  // If Papa headers look like junk (title row), re-map using values of the detected header row
+  const papaLooksReal = papaHeaders.some(h =>
+    /date|tanggal|lead|whatsapp|closing|botol|omset/i.test(h)
+  );
+
+  let headers: string[];
+  let dataRows: Record<string, string>[];
+
+  if (papaLooksReal) {
+    headers = papaHeaders;
+    dataRows = raw.slice(headerIdx + 1);
+  } else {
+    // Use the VALUES of the detected header row as column names
+    const realNames = Object.values(raw[headerIdx] || {}).map(v => String(v).trim());
+    const papaKeys = Object.keys(raw[0] || {});
+    headers = realNames;
+    dataRows = raw.slice(headerIdx + 1).map(row => {
+      const newRow: Record<string, string> = {};
+      papaKeys.forEach((k, i) => { newRow[realNames[i] || k] = row[k]; });
+      return newRow;
+    });
+  }
 
   const findCol = (terms: string[]): string | undefined =>
     headers.find(h => terms.some(t => h.toLowerCase().includes(t)));
@@ -75,8 +102,8 @@ export function parseCSIndividual(raw: Record<string, string>[], sheetName: stri
   const totalClosingCol = findCol(['total closing', 'total.closing']);
   const totalBotolCol = findCol(['total botol', 'total.botol']);
   // Fallback to generic columns
-  const leadCol = totalLeadCol || findCol(['lead']);
-  const closingCol = totalClosingCol || findCol(['closing']);
+  const leadCol = totalLeadCol || findCol(['lead', 'whatsapp', 'wa', 'pesan', 'chat', 'masuk']);
+  const closingCol = totalClosingCol || findCol(['closing', 'new customer', 'customer', 'order']);
   const botolCol = totalBotolCol || findCol(['botol']);
   const crCol = findCol(['closing rate', 'cr']);
 
@@ -85,9 +112,8 @@ export function parseCSIndividual(raw: Record<string, string>[], sheetName: stri
   let totalBotol = 0;
   let crSum = 0, crCount = 0;
 
-  for (let i = headerIdx + 1; i < raw.length; i++) {
-    const row = raw[i];
-    const dateVal = dateCol ? row[dateCol] : '';
+  for (const row of dataRows) {
+    const dateVal = dateCol ? row[dateCol] : Object.values(row)[0] || '';
     if (!dateVal || /date|tanggal|total|grand/i.test(dateVal)) continue;
 
     const lead = leadCol ? num(row[leadCol]) : 0;

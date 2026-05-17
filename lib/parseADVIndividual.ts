@@ -18,6 +18,10 @@ function pct(v: string | undefined): number {
 
 // Extract ADV name from sheet name like "1. Adv Faza"
 function extractADVName(sheetName: string): string {
+  if (sheetName.startsWith('gid:')) {
+    const gid = sheetName.split(':').pop();
+    return `ADV #${gid}`;
+  }
   const match = sheetName.match(/adv\s+(.+)$/i);
   return match ? match[1].trim() : sheetName;
 }
@@ -67,14 +71,35 @@ export function parseADVIndividual(raw: Record<string, string>[], sheetName: str
 
   const produk = extractProductName(raw);
   const headerIdx = findHeaderRow(raw);
-  const headers = Object.keys(raw[headerIdx]);
+  const papaHeaders = Object.keys(raw[headerIdx] || {});
+
+  const papaLooksReal = papaHeaders.some(h =>
+    /date|tanggal|lead|whatsapp|closing|botol|budget|biaya/i.test(h)
+  );
+
+  let headers: string[];
+  let dataRows: Record<string, string>[];
+
+  if (papaLooksReal) {
+    headers = papaHeaders;
+    dataRows = raw.slice(headerIdx + 1);
+  } else {
+    const realNames = Object.values(raw[headerIdx] || {}).map(v => String(v).trim());
+    const papaKeys = Object.keys(raw[0] || {});
+    headers = realNames;
+    dataRows = raw.slice(headerIdx + 1).map(row => {
+      const newRow: Record<string, string> = {};
+      papaKeys.forEach((k, i) => { newRow[realNames[i] || k] = row[k]; });
+      return newRow;
+    });
+  }
 
   const findCol = (terms: string[]): string | undefined =>
     headers.find(h => terms.some(t => h.toLowerCase().includes(t)));
 
   const dateCol = findCol(['date', 'tanggal']);
-  const leadCol = findCol(['jumlah lead', 'lead']);
-  const customerCol = findCol(['new customer', 'customer']);
+  const leadCol = findCol(['jumlah lead', 'lead', 'whatsapp', 'wa', 'pesan', 'masuk', 'chat']);
+  const customerCol = findCol(['new customer', 'customer', 'closing']);
   const closingBotolCol = findCol(['closing botol', 'botol']);
   const crCol = findCol(['closing rate', 'cr']);
   const bacCol = findCol(['biaya akuisisi customer', 'akuisisi customer', 'caq']);
@@ -85,9 +110,8 @@ export function parseADVIndividual(raw: Record<string, string>[], sheetName: str
   let crSum = 0, crCount = 0;
   let caqSum = 0, caqCount = 0;
 
-  for (let i = headerIdx + 1; i < raw.length; i++) {
-    const row = raw[i];
-    const dateVal = dateCol ? row[dateCol] : '';
+  for (const row of dataRows) {
+    const dateVal = dateCol ? row[dateCol] : Object.values(row)[0] || '';
     if (!dateVal || /date|tanggal|total|grand/i.test(dateVal)) continue;
 
     const lead = leadCol ? num(row[leadCol]) : 0;
